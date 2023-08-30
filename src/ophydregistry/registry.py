@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 import logging
 from itertools import chain
 
@@ -63,7 +63,7 @@ class Registry:
         label: Optional[str] = None,
         name: Optional[str] = None,
         allow_none: Optional[str] = False,
-    ) -> ophydobj:
+    ) -> ophydobj.OphydObject:
         """Find registered device components matching parameters.
 
         The *any_of* keyword is a proxy for all the other
@@ -187,7 +187,7 @@ class Registry:
         label: Optional[str] = None,
         name: Optional[str] = None,
         allow_none: Optional[bool] = False,
-    ) -> list[ophydobj]:
+    ) -> List[ophydobj.OphydObject]:
         """Find registered device components matching parameters.
 
         Combining search terms works in an *or* fashion. For example,
