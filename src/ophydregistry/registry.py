@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, List
+from typing import Optional, Mapping, Set, List
 import logging
 from itertools import chain
 
@@ -37,12 +37,30 @@ class Registry:
     This mimics the %wa bluesky magic behavior, except that devices
     can be registered outside of the main REPL loop.
 
+    If *auto_register* is False, components can be added to the
+    registry using the ``register()`` method.
+
+    Parameters
+    ==========
+    auto_register
+      If true, new ophyd objects will be registered without needing to
+      call ``register()``.
+
     """
 
-    components: Sequence
+    # components: Sequence
+    _objects_by_name: Mapping
+    _objects_by_label: Mapping
 
-    def __init__(self):
+    def __init__(self, auto_register: bool=True):
         self.clear()
+        # Set up empty lists and things for registering components
+        self._objects_by_name = {}
+        self._objects_by_label = {}
+        # Add a callback to get notified of new objects
+        # if auto_register:
+        #     ophydobj.OphydObject.add_instantiation_callback(self.register, fail_if_late=False)
+        
 
     def clear(self):
         """Remove the previously registered components."""
@@ -139,13 +157,20 @@ class Registry:
             except AttributeError:
                 attrs = []
             try:
-                for cpt in self.components:
-                    if label in getattr(cpt, "_ophyd_labels_", []):
-                        # Re-apply the dot-notation attributes
-                        cpt_ = cpt
-                        for attr in attrs:
-                            cpt_ = getattr(cpt_, attr)
-                        yield cpt_
+                for cpt_ in self._objects_by_label[label]:
+                    for attr in attrs:
+                        cpt_ = getattr(cpt_, attr)
+                    yield cpt_
+                # for cpt in self.components:
+                #     if label in getattr(cpt, "_ophyd_labels_", []):
+                #         # Re-apply the dot-notation attributes
+                #         cpt_ = cpt
+                #         for attr in attrs:
+                #             cpt_ = getattr(cpt_, attr)
+                #         yield cpt_
+            except KeyError:
+                # No components found so just move on
+                pass
             except TypeError:
                 raise InvalidComponentLabel(label)
 
@@ -172,13 +197,15 @@ class Registry:
             except AttributeError:
                 attrs = []
             # Find the matching components
-            for cpt in self.components:
-                if cpt.name == name:
-                    cpt_ = cpt
-                    # Re-apply dot-notation filter
-                    for attr in attrs:
-                        cpt_ = getattr(cpt_, attr)
-                    yield cpt_
+            try:
+                cpt_ = self._objects_by_name[name]
+            except KeyError:
+                pass
+            else:
+                # Re-apply dot-notation filter
+                for attr in attrs:
+                    cpt_ = getattr(cpt_, attr)
+                yield cpt_
 
     def findall(
         self,
@@ -270,7 +297,7 @@ class Registry:
         self.register(obj)
         return obj
 
-    def register(self, component: ophydobj) -> ophydobj:
+    def register(self, component: ophydobj.OphydObject) -> ophydobj.OphydObject:
         """Register a device, component, etc so that it can be retrieved later.
 
         If *component* is a class, then any instances created will
@@ -288,17 +315,24 @@ class Registry:
             # A class was given, so instances should be auto-registered
             component.__new__ = self.__new__wrapper
         else:  # An instance was given, so just save it in the register
+            name = component.name
             # Ignore any instances with the same name as a previous component
             # (Needed for some sub-components that are just readback
             # values of the parent)
             # Check that we're not adding a duplicate component name
-            is_duplicate = component.name in [c.name for c in self.components]
-            if is_duplicate:
-                msg = f"Ignoring components with duplicate name: '{component.name}'"
+            if name in self._objects_by_name.keys():
+                msg = f"Ignoring component with duplicate name: '{name}'"
                 log.debug(msg)
                 return component
             # Register this component
-            self.components.append(component)
+            log.debug(f"Registering {name}")
+            # Create a set for this device name if it doesn't exist
+            self._objects_by_name[component.name] = component
+            for label in getattr(component, "_ophyd_labels_", []):
+                # Create a set for this label if it doesn't exist
+                if label not in self._objects_by_label.keys():
+                    self._objects_by_label[label] = set()
+                self._objects_by_label[label].add(component)
             # Recusively register sub-components
             sub_signals = getattr(component, "_signals", {})
             for cpt_name, cpt in sub_signals.items():

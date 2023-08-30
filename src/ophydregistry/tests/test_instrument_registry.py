@@ -4,16 +4,17 @@ from ophyd import sim, Device, EpicsMotor
 
 from ophydregistry import Registry, ComponentNotFound, MultipleComponentsFound
 
-# from haven.instrument import Registry
-# from haven.instrument.instrument_registry import (
-#     ComponentNotFound,
-#     MultipleComponentsFound,
-# )
+
+@pytest.fixture()
+def registry():
+    reg = Registry(auto_register=False)
+    return reg
 
 
-def test_register_component():
+
+def test_register_component(registry):
     # Prepare registry
-    reg = Registry()
+    registry = Registry(auto_register=False)
     # Create an unregistered component
     cpt = sim.SynGauss(
         "I0",
@@ -26,16 +27,16 @@ def test_register_component():
     )
     # Make sure the component doesn't get found without being registered
     with pytest.raises(ComponentNotFound):
-        list(reg.findall(label="ion_chamber"))
+        list(registry.findall(label="ion_chamber"))
     with pytest.raises(ComponentNotFound):
-        list(reg.findall(name="I0"))
+        list(registry.findall(name="I0"))
     # Now register the component
-    cpt = reg.register(cpt)
+    cpt = registry.register(cpt)
     # Confirm that it's findable by label
-    results = reg.findall(label="ion_chamber")
+    results = registry.findall(label="ion_chamber")
     assert cpt in results
     # Config that it's findable by name
-    results = reg.findall(name="I0")
+    results = registry.findall(name="I0")
     assert cpt in results
 
 
@@ -68,30 +69,27 @@ def test_find_allow_missing_components():
     assert reg.find(name="eggs", allow_none=True) is None
 
 
-def test_exceptions():
-    reg = Registry()
-    reg.register(Device("", name="It"))
+def test_exceptions(registry):
+    registry = Registry()
+    registry.register(Device("", name="It"))
     # Test if a non-existent labels throws an exception
     with pytest.raises(ComponentNotFound):
-        reg.find(label="spam")
+        registry.find(label="spam")
 
 
-def test_as_class_decorator():
-    reg = Registry()
+def test_as_class_decorator(registry):
     # Create a dummy decorated class
     IonChamber = type("IonChamber", (Device,), {})
-    IonChamber = reg.register(IonChamber)
+    IonChamber = registry.register(IonChamber)
     # Instantiate the class
     IonChamber("PV_PREFIX", name="I0", labels={"ion_chamber"})
     # Check that it gets retrieved
-    result = reg.find(label="ion_chamber")
+    result = registry.find(label="ion_chamber")
     assert result.prefix == "PV_PREFIX"
     assert result.name == "I0"
 
 
-def test_find_component():
-    # Prepare registry
-    reg = Registry()
+def test_find_component(registry):
     # Create an unregistered component
     cptA = sim.SynGauss(
         "I0",
@@ -112,19 +110,17 @@ def test_find_component():
         labels={"ion_chamber"},
     )
     # Register the components
-    reg.register(cptA)
-    reg.register(cptB)
+    registry.register(cptA)
+    registry.register(cptB)
     # Only one match should work fine
-    result = reg.find(name="I0")
+    result = registry.find(name="I0")
     assert result is cptA
     # Multiple matches should raise an exception
     with pytest.raises(MultipleComponentsFound):
-        result = reg.find(label="ion_chamber")
+        result = registry.find(label="ion_chamber")
 
 
-def test_find_name_by_dot_notation():
-    # Prepare registry
-    reg = Registry()
+def test_find_name_by_dot_notation(registry):
     # Create a simulated component
     cptA = sim.SynGauss(
         "I0",
@@ -135,9 +131,9 @@ def test_find_name_by_dot_notation():
         sigma=1,
         labels={"ion_chamber"},
     )
-    reg.register(cptA)
+    registry.register(cptA)
     # Only one match should work fine
-    result = reg.find(name="I0.val")
+    result = registry.find(name="I0.val")
     assert result is cptA.val
 
 
@@ -274,10 +270,29 @@ def test_find_by_list_of_names():
     assert cptC not in result
 
 
-def test_user_readback():
+def test_user_readback(registry):
     """Edge case where EpicsMotor.user_readback is named the same as the motor itself."""
-    registry = Registry()
     device = EpicsMotor("255idVME:m1", name="epics_motor")
     registry.register(device)
     # See if requesting the device.user_readback returns the proper signal
     registry.find("epics_motor_user_readback")
+
+
+# def test_auto_register():
+#     """Ensure the registry gets devices that aren't explicitly registered.
+
+#     Uses ophyds instantiation callback mechanism.  
+
+#     """
+#     registry = Registry()
+#     cptA = sim.SynGauss(
+#         "I0",
+#         sim.motor,
+#         "motor",
+#         center=-0.5,
+#         Imax=1,
+#         sigma=1,
+#         labels={"ion_chamber"},
+#     )
+#     print(registry.findall("I0"))
+#     registry.find("I0")
