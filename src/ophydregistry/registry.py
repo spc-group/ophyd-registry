@@ -1,18 +1,20 @@
 from typing import Optional, Sequence
 import logging
-import warnings
 from itertools import chain
-from typing import Sequence
 
 from ophyd import ophydobj
 
-from .exceptions import MultipleComponentsFound, ComponentNotFound, InvalidComponentLabel
+from .exceptions import (
+    MultipleComponentsFound,
+    ComponentNotFound,
+    InvalidComponentLabel,
+)
 
 
 log = logging.getLogger(__name__)
 
 
-__all__ = ["Registry", "registry"]
+__all__ = ["Registry"]
 
 
 def is_iterable(obj):
@@ -289,9 +291,6 @@ class Registry:
             # Ignore any instances with the same name as a previous component
             # (Needed for some sub-components that are just readback
             # values of the parent)
-            duplicate_components = [
-                c for c in self.components if c.name == component.name
-            ]
             # Check that we're not adding a duplicate component name
             is_duplicate = component.name in [c.name for c in self.components]
             if is_duplicate:
@@ -305,5 +304,3 @@ class Registry:
             for cpt_name, cpt in sub_signals.items():
                 self.register(cpt)
         return component
-
-
