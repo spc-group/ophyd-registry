@@ -1,5 +1,5 @@
 [project]
-name = "haven-spc"
+name = "ophyd-registry"
 version = "0.1"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
@@ -19,7 +19,7 @@ dependencies = ["ophyd"]
 
 [project.optional-dependencies]
 
-dev = ["black", "pytest", "build", "twine", "flake8", "caproto"]
+dev = ["black", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
 
 [project.urls]
 "Homepage" = "https://haven-spc.readthedocs.io/en/latest/"
