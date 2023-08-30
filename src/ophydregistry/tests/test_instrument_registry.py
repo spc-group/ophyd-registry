@@ -11,7 +11,6 @@ def registry():
     return reg
 
 
-
 def test_register_component(registry):
     # Prepare registry
     registry = Registry(auto_register=False)
@@ -278,21 +277,21 @@ def test_user_readback(registry):
     registry.find("epics_motor_user_readback")
 
 
-# def test_auto_register():
-#     """Ensure the registry gets devices that aren't explicitly registered.
+def test_auto_register():
+    """Ensure the registry gets devices that aren't explicitly registered.
 
-#     Uses ophyds instantiation callback mechanism.  
+    Uses ophyds instantiation callback mechanism.
 
-#     """
-#     registry = Registry()
-#     cptA = sim.SynGauss(
-#         "I0",
-#         sim.motor,
-#         "motor",
-#         center=-0.5,
-#         Imax=1,
-#         sigma=1,
-#         labels={"ion_chamber"},
-#     )
-#     print(registry.findall("I0"))
-#     registry.find("I0")
+    """
+    registry = Registry()
+    cptA = sim.SynGauss(
+        "I0",
+        sim.motor,
+        "motor",
+        center=-0.5,
+        Imax=1,
+        sigma=1,
+        labels={"ion_chamber"},
+    )
+    print(registry.findall("I0"))
+    registry.find("I0")

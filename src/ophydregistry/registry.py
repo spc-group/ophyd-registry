@@ -52,15 +52,16 @@ class Registry:
     _objects_by_name: Mapping
     _objects_by_label: Mapping
 
-    def __init__(self, auto_register: bool=True):
+    def __init__(self, auto_register: bool = True):
         self.clear()
         # Set up empty lists and things for registering components
         self._objects_by_name = {}
         self._objects_by_label = {}
         # Add a callback to get notified of new objects
-        # if auto_register:
-        #     ophydobj.OphydObject.add_instantiation_callback(self.register, fail_if_late=False)
-        
+        if auto_register:
+            ophydobj.OphydObject.add_instantiation_callback(
+                self.register, fail_if_late=False
+            )
 
     def clear(self):
         """Remove the previously registered components."""
@@ -158,16 +159,10 @@ class Registry:
                 attrs = []
             try:
                 for cpt_ in self._objects_by_label[label]:
+                    # Re-apply the dot-notation filter
                     for attr in attrs:
                         cpt_ = getattr(cpt_, attr)
                     yield cpt_
-                # for cpt in self.components:
-                #     if label in getattr(cpt, "_ophyd_labels_", []):
-                #         # Re-apply the dot-notation attributes
-                #         cpt_ = cpt
-                #         for attr in attrs:
-                #             cpt_ = getattr(cpt_, attr)
-                #         yield cpt_
             except KeyError:
                 # No components found so just move on
                 pass
