@@ -1,6 +1,6 @@
 [project]
 name = "ophyd-registry"
-version = "0.2"
+version = "0.3"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
@@ -22,8 +22,8 @@ dependencies = ["ophyd"]
 dev = ["black", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
 
 [project.urls]
-"Homepage" = "https://github.com/spcgroup/ophyd-registry"
-"Bug Tracker" = "https://github.com/spcgroup/ophyd-registry/issues"
+"Homepage" = "https://github.com/spc-group/ophyd-registry"
+"Bug Tracker" = "https://github.com/spc-group/ophyd-registry/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]
