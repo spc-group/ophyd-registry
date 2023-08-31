@@ -293,5 +293,45 @@ def test_auto_register():
         sigma=1,
         labels={"ion_chamber"},
     )
-    print(registry.findall("I0"))
     registry.find("I0")
+
+
+
+def test_clear():
+    """Can the registry be properly cleared."""
+    registry = Registry()
+    cpt = sim.SynGauss(
+        "I0",
+        sim.motor,
+        "motor",
+        center=-0.5,
+        Imax=1,
+        sigma=1,
+        labels={"ion_chamber"},
+    )
+    assert registry.find("I0") is cpt
+    # Clear the registry and confirm that it's gone
+    registry.clear()
+    with pytest.raises(ComponentNotFound):
+        registry.find("I0")
+
+
+def test_component_properties():
+    """Check that we can get lists of component and devices."""
+    registry = Registry()
+    cpt = sim.SynGauss(
+        "I0",
+        sim.motor,
+        "motor",
+        center=-0.5,
+        Imax=1,
+        sigma=1,
+        labels={"ion_chamber"},
+    )
+    assert registry.device_names == {"I0"}
+    assert registry.component_names == {"I0", 'I0_Imax',
+                                          'I0_center',
+                                          'I0_noise',
+                                          'I0_noise_multiplier',
+                                          'I0_sigma',
+                                          'I0_val',}

@@ -55,8 +55,7 @@ class Registry:
     def __init__(self, auto_register: bool = True):
         self.clear()
         # Set up empty lists and things for registering components
-        self._objects_by_name = {}
-        self._objects_by_label = {}
+        self.clear()
         # Add a callback to get notified of new objects
         if auto_register:
             ophydobj.OphydObject.add_instantiation_callback(
@@ -65,15 +64,17 @@ class Registry:
 
     def clear(self):
         """Remove the previously registered components."""
-        self.components = []
+        self._objects_by_name = {}
+        self._objects_by_label = {}
 
     @property
     def component_names(self):
-        return [c.name for c in self.components]
+        return set(self._objects_by_name.keys())
 
     @property
     def device_names(self):
-        return [c.name for c in self.components if c.parent is None]
+        """Only return root devices, those without parents."""
+        return set([name for name, dev in self._objects_by_name.items() if dev.parent is None])
 
     def find(
         self,
