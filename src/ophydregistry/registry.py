@@ -1,6 +1,7 @@
 from typing import Optional, Mapping, Set, List
 import logging
 from itertools import chain
+from collections import OrderedDict
 
 from ophyd import ophydobj
 
@@ -64,8 +65,8 @@ class Registry:
 
     def clear(self):
         """Remove the previously registered components."""
-        self._objects_by_name = {}
-        self._objects_by_label = {}
+        self._objects_by_name = OrderedDict()
+        self._objects_by_label = OrderedDict()
 
     @property
     def component_names(self):
