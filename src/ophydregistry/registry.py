@@ -312,7 +312,11 @@ class Registry:
             # A class was given, so instances should be auto-registered
             component.__new__ = self.__new__wrapper
         else:  # An instance was given, so just save it in the register
-            name = component.name
+            try:
+                name = component.name
+            except AttributeError:
+                log.info(f"Skipping unnamed component {component}")
+                return component
             # Ignore any instances with the same name as a previous component
             # (Needed for some sub-components that are just readback
             # values of the parent)
