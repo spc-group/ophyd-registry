@@ -142,3 +142,29 @@ component so is not available. Instead, retrieving the device by
 detector ("sim_det"), then access the *cam* attribute, and then cam's
 *gain* attribute. This has the side-effect of instantiating the lazy
 components.
+
+
+Integrating with Typhos
+-----------------------
+
+Typhos includes a PyDM plugin that can directly interact with ophyd
+devices. It requires ophyd objects to be registered in order to find
+them. **ophyd_registry** can automatically register devices with
+Typhos by simply passing the *use_typhos* argument when creating the
+registry:
+
+.. code:: python
+    
+    from ophydregistry import Registry
+    registry = Registry(use_typos=True)
+
+or setting the *use_typhos* attribute on an existing registry:
+
+.. code:: python
+    
+    from ophydregistry import Registry
+    registry = Registry()
+    registry.use_typhos = True
+
+If using the typhos registry, calling the *clear()* method on the
+ophyd registry will also clear the Typhos registry.

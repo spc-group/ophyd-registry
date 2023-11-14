@@ -46,27 +46,44 @@ class Registry:
     auto_register
       If true, new ophyd objects will be registered without needing to
       call ``register()``.
+    use_typhos
+      If true, items added to this registry will also be added to the
+      Typhos registry for inclusion in PyDM windows.
 
     """
+
+    use_typhos: bool = False
 
     # components: Sequence
     _objects_by_name: Mapping
     _objects_by_label: Mapping
 
-    def __init__(self, auto_register: bool = True):
-        self.clear()
+    def __init__(self, auto_register: bool = True, use_typhos: bool = False):
         # Set up empty lists and things for registering components
         self.clear()
+        self.use_typhos = use_typhos
         # Add a callback to get notified of new objects
         if auto_register:
             ophydobj.OphydObject.add_instantiation_callback(
                 self.register, fail_if_late=False
             )
 
-    def clear(self):
-        """Remove the previously registered components."""
+    def clear(self, clear_typhos: bool = True):
+        """Remove all previously registered components.
+
+        Parameters
+        ==========
+        clear_typhos
+          If true, also empty the Typhos registry. Has no effect is
+          *self.use_typhos* is false.
+
+        """
         self._objects_by_name = OrderedDict()
         self._objects_by_label = OrderedDict()
+        if clear_typhos and self.use_typhos:
+            import typhos
+
+            typhos.plugins.core.signal_registry.clear()
 
     @property
     def component_names(self):
@@ -75,7 +92,9 @@ class Registry:
     @property
     def device_names(self):
         """Only return root devices, those without parents."""
-        return set([name for name, dev in self._objects_by_name.items() if dev.parent is None])
+        return set(
+            [name for name, dev in self._objects_by_name.items() if dev.parent is None]
+        )
 
     def find(
         self,
@@ -329,11 +348,16 @@ class Registry:
             log.debug(f"Registering {name}")
             # Create a set for this device name if it doesn't exist
             self._objects_by_name[component.name] = component
+            # Create a set for this device's labels if it doesn't exist
             for label in getattr(component, "_ophyd_labels_", []):
-                # Create a set for this label if it doesn't exist
                 if label not in self._objects_by_label.keys():
                     self._objects_by_label[label] = set()
                 self._objects_by_label[label].add(component)
+            # Register this object with Typhos
+            if self.use_typhos:
+                import typhos
+
+                typhos.plugins.register_signal(component)
             # Recusively register sub-components
             sub_signals = getattr(component, "_signals", {})
             for cpt_name, cpt in sub_signals.items():

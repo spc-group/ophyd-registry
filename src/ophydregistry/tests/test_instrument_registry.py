@@ -296,7 +296,6 @@ def test_auto_register():
     registry.find("I0")
 
 
-
 def test_clear():
     """Can the registry be properly cleared."""
     registry = Registry()
@@ -329,9 +328,12 @@ def test_component_properties():
         labels={"ion_chamber"},
     )
     assert registry.device_names == {"I0"}
-    assert registry.component_names == {"I0", 'I0_Imax',
-                                          'I0_center',
-                                          'I0_noise',
-                                          'I0_noise_multiplier',
-                                          'I0_sigma',
-                                          'I0_val',}
+    assert registry.component_names == {
+        "I0",
+        "I0_Imax",
+        "I0_center",
+        "I0_noise",
+        "I0_noise_multiplier",
+        "I0_sigma",
+        "I0_val",
+    }
