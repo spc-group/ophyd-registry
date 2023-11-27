@@ -4,6 +4,12 @@ from itertools import chain
 from collections import OrderedDict
 
 from ophyd import ophydobj
+try:
+    import typhos
+except ImportError:
+    typhos_available = False
+else:
+    typhos_available = True
 
 from .exceptions import (
     MultipleComponentsFound,
@@ -29,6 +35,49 @@ def remove_duplicates(items, key=None):
         if val not in unique_items:
             yield item
             unique_items.append(val)
+
+
+def register_typhos_signal(signal):
+    """
+    Add a new Signal to Typhos' registry.
+
+    The Signal object is kept within ``signal_registry`` for reference by name
+    in the :class:`.SignalConnection`. Signals can be added multiple times,
+    but only the first register_signal call for each unique signal name
+    has any effect.
+
+    Signals can be referenced by their ``name`` attribute or by their
+    full dotted path starting from the parent's name.
+    """
+    # Pick all the name aliases (name, dotted path)
+    if signal is signal.root:
+        names = (signal.name,)
+    else:
+        # .dotted_name does not include the root device's name
+        names = (
+            signal.name,
+            '.'.join((signal.root.name, signal.dotted_name)),
+        )
+    # Warn the user if they are adding twice
+    signal_registry = typhos.plugins.core.signal_registry
+    for name in names:
+        if name in signal_registry:
+            # Case 1: harmless re-add
+            if signal_registry[name] is signal:
+                log.debug(
+                    "The signal named %s is already registered!",
+                    name,
+                )
+            # Case 2: harmful overwrite! Name collision!
+            else:
+                log.warning(
+                    "A different signal named %s is already registered!",
+                    name,
+                )
+            continue
+        else:
+            signal_registry[name] = signal
+    log.debug("Registering signal with names %s", names)
 
 
 class Registry:
@@ -59,6 +108,9 @@ class Registry:
     _objects_by_label: Mapping
 
     def __init__(self, auto_register: bool = True, use_typhos: bool = False):
+        # Check that Typhos is installed if needed
+        if use_typhos and not typhos_available:
+            raise ModuleNotFoundError("No module named 'typhos'")
         # Set up empty lists and things for registering components
         self.clear()
         self.use_typhos = use_typhos
@@ -81,8 +133,6 @@ class Registry:
         self._objects_by_name = OrderedDict()
         self._objects_by_label = OrderedDict()
         if clear_typhos and self.use_typhos:
-            import typhos
-
             typhos.plugins.core.signal_registry.clear()
 
     @property
@@ -336,6 +386,9 @@ class Registry:
             except AttributeError:
                 log.info(f"Skipping unnamed component {component}")
                 return component
+            # Register this object with Typhos
+            if self.use_typhos:
+                register_typhos_signal(component)
             # Ignore any instances with the same name as a previous component
             # (Needed for some sub-components that are just readback
             # values of the parent)

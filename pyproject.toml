@@ -1,6 +1,6 @@
 [project]
 name = "ophyd-registry"
-version = "0.6"
+version = "0.7"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
