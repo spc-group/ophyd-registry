@@ -10,6 +10,23 @@ across a project. In order for the registry to know of a device, that
 device must first be registered, though there are ways to do this
 automatically.
 
+This allows for a simple way to keep track of the Ophyd devices that were
+created in your project.
+
+```python
+
+import ophyd
+from ophydregistry import OphydRegistry
+
+# Register the devices when they're created
+registry = OphydRegistry()
+registry.register(ophyd.sim.motor)
+
+# Then elsewhere in your project, use them...
+registry['motor'].set(15.3)
+
+```
+
 Installation
 ============
 
@@ -92,10 +109,16 @@ Looking Up Registered Devices/Components
 ----------------------------------------
 
 Registered objects can be found by *name*, *label*, or both. The
-*Registry.find()* method will return a single result, while
-*Registry.findall()* returns more than one. By default, *findall()*
-will raise an exception if no objects match the criteria, but this can
-be overridden with the *allow_none* keyword argument.
+easist way is to treat the registry like a dictionary:
+``registry['motor1']``. This will look for an individual device first
+by *name* then by *label*. It will raise an exception if the number of
+devices is not 1.
+
+For more sophisticated queries, the *Registry.find()* method will
+return a single result, while *Registry.findall()* returns more than
+one. By default, *findall()* will raise an exception if no objects
+match the criteria, but this can be overridden with the *allow_none*
+keyword argument.
 
 The registry uses the built-in concept of device labels in Ophyd. The
 registry's ``find()`` and ``findall()`` methods allows devices to be

@@ -347,3 +347,11 @@ def test_root_devices():
     root_devices = registry.root_devices
     assert len(root_devices) == 3
 
+
+def test_getitem():
+    """Check that the registry can be accessed like a dictionary."""
+    registry = Registry()
+    registry.register(sim.motor1)
+    # Check that the dictionary access works
+    result = registry['motor1']
+    assert result is sim.motor1

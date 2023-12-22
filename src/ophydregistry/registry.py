@@ -120,6 +120,14 @@ class Registry:
                 self.register, fail_if_late=False
             )
 
+    def __getitem__(self, key):
+        """Retrieve the object from the dicionary.
+
+        Equivalent to ``registry.find(key)``.
+
+        """
+        return self.find(key)
+
     def clear(self, clear_typhos: bool = True):
         """Remove all previously registered components.
 

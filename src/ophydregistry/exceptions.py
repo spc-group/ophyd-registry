@@ -1,10 +1,10 @@
-class ComponentNotFound(IndexError):
+class ComponentNotFound(KeyError):
     """Registry looked for a component, but it wasn't registered."""
 
     ...
 
 
-class MultipleComponentsFound(IndexError):
+class MultipleComponentsFound(KeyError):
     """Registry looked for a single component, but found more than one."""
 
     ...
