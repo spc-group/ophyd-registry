@@ -284,7 +284,7 @@ def test_auto_register():
 
     """
     registry = Registry()
-    cptA = sim.SynGauss(
+    sim.SynGauss(
         "I0",
         sim.motor,
         "motor",
@@ -318,7 +318,7 @@ def test_clear():
 def test_component_properties():
     """Check that we can get lists of component and devices."""
     registry = Registry()
-    cpt = sim.SynGauss(
+    sim.SynGauss(
         "I0",
         sim.motor,
         "motor",
@@ -338,6 +338,7 @@ def test_component_properties():
         "I0_val",
     }
 
+
 def test_root_devices():
     registry = Registry()
     registry.register(sim.motor1)
@@ -353,5 +354,5 @@ def test_getitem():
     registry = Registry()
     registry.register(sim.motor1)
     # Check that the dictionary access works
-    result = registry['motor1']
+    result = registry["motor1"]
     assert result is sim.motor1

@@ -1,2 +1,2 @@
-from .registry import Registry
-from .exceptions import ComponentNotFound, MultipleComponentsFound
+from .registry import Registry  # noqa: F401
+from .exceptions import ComponentNotFound, MultipleComponentsFound  # noqa: F401

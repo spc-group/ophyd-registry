@@ -1,9 +1,10 @@
-from typing import Optional, Mapping, Set, List
+from typing import Optional, Mapping, List
 import logging
 from itertools import chain
 from collections import OrderedDict
 
 from ophyd import ophydobj
+
 try:
     import typhos
 except ImportError:
@@ -56,7 +57,7 @@ def register_typhos_signal(signal):
         # .dotted_name does not include the root device's name
         names = (
             signal.name,
-            '.'.join((signal.root.name, signal.dotted_name)),
+            ".".join((signal.root.name, signal.dotted_name)),
         )
     # Warn the user if they are adding twice
     signal_registry = typhos.plugins.core.signal_registry
