@@ -140,6 +140,13 @@ class Registry:
         return set(self._objects_by_name.keys())
 
     @property
+    def root_devices(self):
+        """Only return root devices, those without parents."""
+        return set(
+            dev for name, dev in self._objects_by_name.items() if dev.parent is None
+        )
+
+    @property
     def device_names(self):
         """Only return root devices, those without parents."""
         return set(

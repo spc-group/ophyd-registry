@@ -115,6 +115,9 @@ ion_chambers = registry.find(name="I0")
 assert len(ion_chambers) == 4
 ```
 
+A set of the **root devices**, those without a parent, can be
+retrieved at ``Registry.root_devices``.
+
 Looking Up Sub-Components by Dot-Notation
 -----------------------------------------
 

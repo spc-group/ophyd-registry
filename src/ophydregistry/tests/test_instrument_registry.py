@@ -337,3 +337,13 @@ def test_component_properties():
         "I0_sigma",
         "I0_val",
     }
+
+def test_root_devices():
+    registry = Registry()
+    registry.register(sim.motor1)
+    registry.register(sim.motor2)
+    registry.register(sim.motor3)
+    # Check that only root devices are returned
+    root_devices = registry.root_devices
+    assert len(root_devices) == 3
+
