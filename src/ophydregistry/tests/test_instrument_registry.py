@@ -1,5 +1,6 @@
-import pytest
+import logging
 
+import pytest
 from ophyd import sim, Device, EpicsMotor
 
 from ophydregistry import Registry, ComponentNotFound, MultipleComponentsFound
@@ -356,3 +357,22 @@ def test_getitem():
     # Check that the dictionary access works
     result = registry["motor1"]
     assert result is sim.motor1
+
+
+def test_duplicate_device(caplog):
+    """Check that a device doesn't get added twice."""
+    registry = Registry()
+    motor = sim.motor
+    # Set up logging so that we can know what
+    caplog.clear()
+    with caplog.at_level(logging.DEBUG):
+        registry.register(motor)
+    # Check for the edge case where motor and motor.user_readback have the same name
+    assert "Ignoring component with duplicate name" not in caplog.text
+    assert "Ignoring readback with duplicate name" in caplog.text
+    # Check that truly duplicated entries get a warning
+    caplog.clear()
+    with (pytest.warns(UserWarning), caplog.at_level(logging.WARNING)):
+        registry.register(motor)
+    # Check for the edge case where motor and motor.user_readback have the same name
+    assert "Ignoring component with duplicate name" in caplog.text

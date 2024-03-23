@@ -1,5 +1,6 @@
 from typing import Optional, Mapping, List
 import logging
+import warnings
 from itertools import chain
 from collections import OrderedDict
 
@@ -410,8 +411,18 @@ class Registry:
             # values of the parent)
             # Check that we're not adding a duplicate component name
             if name in self._objects_by_name.keys():
-                msg = f"Ignoring component with duplicate name: '{name}'"
-                log.debug(msg)
+                old_obj = self._objects_by_name[name]
+                is_readback = component in [
+                    getattr(old_obj, "readback", None),
+                    getattr(old_obj, "user_readback", None),
+                ]
+                if is_readback:
+                    msg = f"Ignoring readback with duplicate name: '{name}'"
+                    log.debug(msg)
+                else:
+                    msg = f"Ignoring component with duplicate name: '{name}'"
+                    log.warning(msg)
+                    warnings.warn(msg)
                 return component
             # Register this component
             log.debug(f"Registering {name}")
