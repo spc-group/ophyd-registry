@@ -6,6 +6,11 @@ from collections import OrderedDict
 
 from ophyd import ophydobj
 
+
+# Sentinal value for default parameters
+UNSET = object()
+
+
 try:
     import typhos
 except ImportError:
@@ -130,6 +135,40 @@ class Registry:
         """
         return self.find(key)
 
+    def __delitem__(self, key):
+        """Remove an object from the dicionary.
+
+        *key* can either be the device OphydObject or the name of an
+        OphydObject.
+
+        """
+        self.pop(key)
+
+    def pop(self, key, default=UNSET) -> ophydobj.OphydObject:
+        """Remove specified OphydObject and return it.
+
+        *key* can either be the device OphydObject or the name of an
+        OphydObject.
+
+        A default value can be provided that will be returned if the
+        object is not present.
+
+        """
+        # Locate the item
+        try:
+            obj = self[key]
+        except ComponentNotFound:
+            if default is not UNSET:
+                return default
+            else:
+                raise
+        # Remove from the list by name
+        del self._objects_by_name[obj.name]
+        # Remove from the list by label
+        for objects in self._objects_by_label.values():
+            objects.discard(obj)
+        return obj
+    
     def clear(self, clear_typhos: bool = True):
         """Remove all previously registered components.
 
