@@ -1,9 +1,9 @@
 import logging
 
 import pytest
-from ophyd import sim, Device, EpicsMotor
+from ophyd import Device, EpicsMotor, sim
 
-from ophydregistry import Registry, ComponentNotFound, MultipleComponentsFound
+from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
 
 @pytest.fixture()
@@ -404,7 +404,7 @@ def test_pop_by_name():
     # Check that the test fails
     with pytest.raises(ComponentNotFound):
         registry[motor.name]
-    with pytest.raises(ComponentNotFound):        
+    with pytest.raises(ComponentNotFound):
         registry["motors"]
 
 
@@ -420,7 +420,7 @@ def test_pop_by_object():
     # Check that the test fails
     with pytest.raises(ComponentNotFound):
         registry[motor.name]
-    with pytest.raises(ComponentNotFound):        
+    with pytest.raises(ComponentNotFound):
         registry["motors"]
 
 
@@ -435,5 +435,5 @@ def test_pop_default():
     # Check that the test fails
     with pytest.raises(ComponentNotFound):
         registry[motor.name]
-    with pytest.raises(ComponentNotFound):        
+    with pytest.raises(ComponentNotFound):
         registry["motors"]

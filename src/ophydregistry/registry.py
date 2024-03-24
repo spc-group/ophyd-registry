@@ -1,11 +1,10 @@
-from typing import Optional, Mapping, List
 import logging
 import warnings
-from itertools import chain
 from collections import OrderedDict
+from itertools import chain
+from typing import List, Mapping, Optional
 
 from ophyd import ophydobj
-
 
 # Sentinal value for default parameters
 UNSET = object()
@@ -19,11 +18,10 @@ else:
     typhos_available = True
 
 from .exceptions import (
-    MultipleComponentsFound,
     ComponentNotFound,
     InvalidComponentLabel,
+    MultipleComponentsFound,
 )
-
 
 log = logging.getLogger(__name__)
 
@@ -168,7 +166,7 @@ class Registry:
         for objects in self._objects_by_label.values():
             objects.discard(obj)
         return obj
-    
+
     def clear(self, clear_typhos: bool = True):
         """Remove all previously registered components.
 

@@ -19,7 +19,7 @@ dependencies = ["ophyd"]
 
 [project.optional-dependencies]
 
-dev = ["black", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
+dev = ["black", "isort", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/ophyd-registry"
@@ -28,3 +28,6 @@ dev = ["black", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.isort]
+profile = "black"
