@@ -68,7 +68,7 @@ the_device = MyDevice("255id:Dev:", name="my_device")
 assert registry.find("my_device") is the_device
 ```
 
-If this greedy behavior is suppressed with the *auto_register*
+This greedy behavior can be suppressed with the *auto_register*
 parameter. If *auto_register* is false, then a device class can be
 decorated to allow the registry to find it:
 
@@ -169,6 +169,36 @@ detector ("sim_det"), then access the *cam* attribute, and then cam's
 *gain* attribute. This has the side-effect of instantiating the lazy
 components.
 
+
+Removing Devices
+----------------
+
+The ``OphydRegistry`` class behaves similarly to a python dictionary.
+
+To **remove all devices** from the registry, use the ``clear()``
+method:
+
+```python
+
+registry.clear()
+```
+
+To **remove individual objects**, use either the *del* keyword, or the
+``pop()`` method. These approaches work with either the
+``OphydObject`` instance itself, or the instance's name:
+
+```python
+
+# Just delete the item and move on
+# (by name)
+del registry["motor1"]
+del registry[motor]
+
+# Remove the item and use it
+# (return ``None`` if motor1 is not in the registry)
+registry.pop("motor1", None)
+
+```
 
 Integrating with Typhos
 -----------------------

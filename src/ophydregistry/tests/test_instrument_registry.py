@@ -1,9 +1,9 @@
 import logging
 
 import pytest
-from ophyd import sim, Device, EpicsMotor
+from ophyd import Device, EpicsMotor, sim
 
-from ophydregistry import Registry, ComponentNotFound, MultipleComponentsFound
+from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
 
 @pytest.fixture()
@@ -372,7 +372,68 @@ def test_duplicate_device(caplog):
     assert "Ignoring readback with duplicate name" in caplog.text
     # Check that truly duplicated entries get a warning
     caplog.clear()
-    with (pytest.warns(UserWarning), caplog.at_level(logging.WARNING)):
-        registry.register(motor)
+    with caplog.at_level(logging.WARNING):
+        with pytest.warns(UserWarning):
+            registry.register(motor)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" in caplog.text
+
+
+def test_delete_by_name():
+    """Check that we can remove an item from the ophyd registry."""
+    # Add an item to the registry
+    registry = Registry()
+    motor = sim.motor
+    registry.register(motor)
+    # Delete the item from the registry
+    del registry[motor.name]
+    # Check that the test fails
+    with pytest.raises(ComponentNotFound):
+        registry[motor.name]
+
+
+def test_pop_by_name():
+    """Check that we can remove an item from the ophyd registry."""
+    # Add an item to the registry
+    registry = Registry()
+    motor = sim.motor
+    registry.register(motor)
+    # Pop the item from the registry
+    popped = registry.pop(motor.name)
+    assert popped is motor
+    # Check that the test fails
+    with pytest.raises(ComponentNotFound):
+        registry[motor.name]
+    with pytest.raises(ComponentNotFound):
+        registry["motors"]
+
+
+def test_pop_by_object():
+    """Check that we can remove an item from the ophyd registry."""
+    # Add an item to the registry
+    registry = Registry()
+    motor = sim.motor
+    registry.register(motor)
+    # Pop the item from the registry
+    popped = registry.pop(motor)
+    assert popped is motor
+    # Check that the test fails
+    with pytest.raises(ComponentNotFound):
+        registry[motor.name]
+    with pytest.raises(ComponentNotFound):
+        registry["motors"]
+
+
+def test_pop_default():
+    """Check that we get a default object if our key is not present."""
+    # Add an item to the registry
+    registry = Registry()
+    motor = sim.motor
+    # Pop the item from the registry
+    popped = registry.pop("gibberish", motor)
+    assert popped is motor
+    # Check that the test fails
+    with pytest.raises(ComponentNotFound):
+        registry[motor.name]
+    with pytest.raises(ComponentNotFound):
+        registry["motors"]
