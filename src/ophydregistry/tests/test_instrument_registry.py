@@ -372,8 +372,9 @@ def test_duplicate_device(caplog):
     assert "Ignoring readback with duplicate name" in caplog.text
     # Check that truly duplicated entries get a warning
     caplog.clear()
-    with (pytest.warns(UserWarning), caplog.at_level(logging.WARNING)):
-        registry.register(motor)
+    with caplog.at_level(logging.WARNING):
+        with pytest.warns(UserWarning):
+            registry.register(motor)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" in caplog.text
 
