@@ -192,11 +192,14 @@ To **remove individual objects**, use either the *del* keyword, or the
 # Just delete the item and move on
 # (by name)
 del registry["motor1"]
+# (by reference)
+motor = registry['motor1']
 del registry[motor]
 
 # Remove the item and use it
-# (return ``None`` if motor1 is not in the registry)
-registry.pop("motor1", None)
+# (return a simulated motor if "motor1" is not in the registry)
+motor = registry.pop("motor1", ophyd.sim.motor)
+motor.set(5).wait()
 
 ```
 
@@ -209,18 +212,22 @@ them. **ophyd_registry** can automatically register devices with
 Typhos by simply passing the *use_typhos* argument when creating the
 registry:
 
-.. code:: python
+```python
     
-    from ophydregistry import Registry
-    registry = Registry(use_typos=True)
+from ophydregistry import Registry
+registry = Registry(use_typos=True)
+
+```
 
 or setting the *use_typhos* attribute on an existing registry:
 
-.. code:: python
+```python
     
-    from ophydregistry import Registry
-    registry = Registry()
-    registry.use_typhos = True
+from ophydregistry import Registry
+registry = Registry()
+registry.use_typhos = True
+
+```
 
 If using the typhos registry, calling the *clear()* method on the
 ophyd registry will also clear the Typhos registry.
