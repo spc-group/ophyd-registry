@@ -406,6 +406,9 @@ def test_pop_by_name():
         registry[motor.name]
     with pytest.raises(ComponentNotFound):
         registry["motors"]
+    # Make sure children get deleted too
+    with pytest.raises(ComponentNotFound):
+        registry[motor.acceleration.name]
 
 
 def test_pop_by_object():

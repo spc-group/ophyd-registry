@@ -161,10 +161,17 @@ class Registry:
             else:
                 raise
         # Remove from the list by name
-        del self._objects_by_name[obj.name]
+        try:
+            del self._objects_by_name[obj.name]
+        except KeyError:
+            pass
         # Remove from the list by label
         for objects in self._objects_by_label.values():
             objects.discard(obj)
+        # Remove children from the lists as well
+        sub_signals = getattr(obj, "_signals", {})
+        for cpt_name, cpt in sub_signals.items():
+            self.pop(cpt)
         return obj
 
     def clear(self, clear_typhos: bool = True):
