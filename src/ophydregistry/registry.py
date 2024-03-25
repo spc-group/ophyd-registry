@@ -3,6 +3,7 @@ import warnings
 from collections import OrderedDict
 from itertools import chain
 from typing import List, Mapping, Optional
+from weakref import WeakValueDictionary, WeakSet
 
 from ophyd import ophydobj
 
@@ -103,23 +104,31 @@ class Registry:
     use_typhos
       If true, items added to this registry will also be added to the
       Typhos registry for inclusion in PyDM windows.
+    keep_references
+      If false, items will be dropped from this registry if the only
+      reference comes from this registry. Relies on the garbage
+      collector, so to force cleanup use ``gc.collect()``.
 
     """
 
-    use_typhos: bool = False
+    use_typhos: bool
+    keep_references: bool
     _auto_register: bool
 
     # components: Sequence
     _objects_by_name: Mapping
     _objects_by_label: Mapping
 
-    def __init__(self, auto_register: bool = True, use_typhos: bool = False):
+    def __init__(
+        self, auto_register: bool = True, use_typhos: bool = False, keep_references: bool = True
+    ):
         # Check that Typhos is installed if needed
         if use_typhos and not typhos_available:
             raise ModuleNotFoundError("No module named 'typhos'")
         # Set up empty lists and things for registering components
-        self.clear()
+        self.keep_references = keep_references
         self.use_typhos = use_typhos
+        self.clear()
         self.auto_register = auto_register
 
     @property
@@ -202,8 +211,11 @@ class Registry:
           *self.use_typhos* is false.
 
         """
-        self._objects_by_name = OrderedDict()
         self._objects_by_label = OrderedDict()
+        if self.keep_references:
+            self._objects_by_name = OrderedDict()
+        else:
+            self._objects_by_name = WeakValueDictionary()
         if clear_typhos and self.use_typhos:
             typhos.plugins.core.signal_registry.clear()
 
@@ -496,7 +508,10 @@ class Registry:
             # Create a set for this device's labels if it doesn't exist
             for label in getattr(component, "_ophyd_labels_", []):
                 if label not in self._objects_by_label.keys():
-                    self._objects_by_label[label] = set()
+                    if self.keep_references:
+                        self._objects_by_label[label] = set()
+                    else:
+                        self._objects_by_label[label] = WeakSet()
                 self._objects_by_label[label].add(component)
             # Register this object with Typhos
             if self.use_typhos:

@@ -429,3 +429,21 @@ def test_pop_default(registry):
         registry[motor.name]
     with pytest.raises(ComponentNotFound):
         registry["motors"]
+
+
+def test_weak_references():
+    """Check that we can make a registry that automatically drops
+    objects that are only referenced by this registry.
+
+    """
+    motor = sim.SynAxis(name="weak_motor", labels={"motors"})
+    registry = Registry(keep_references=False)
+    registry.register(motor)
+    # Can we still find the object if the test has a reference?
+    assert registry.find("weak_motor") is motor
+    # Delete the original object
+    del motor
+    gc.collect()
+    # Check that it's not in the registry anymore
+    with pytest.raises(ComponentNotFound):
+        registry.find("weak_motor")
