@@ -69,7 +69,27 @@ assert registry.find("my_device") is the_device
 ```
 
 This greedy behavior can be suppressed with the *auto_register*
-parameter. If *auto_register* is false, then a device class can be
+parameter. It can also be turned off after initialization by setting
+the *auto_register* attribute to ``False``::
+
+```python
+
+registry = Registry(auto_register=False)
+
+# Make a bunch of devices
+...
+
+# Turn if off for this one
+registry.auto_register = False
+device = MyDevice(...)
+registry.auto_register = True
+
+# Register some other devices maybe
+...
+
+```
+
+If *auto_register* is false, then a device class can be
 decorated to allow the registry to find it:
 
 ```python

@@ -19,7 +19,7 @@ dependencies = ["ophyd"]
 
 [project.optional-dependencies]
 
-dev = ["black", "isort", "pytest", "build", "twine", "flake8", "caproto", "ruff"]
+dev = ["black", "isort", "pytest", "build", "twine", "flake8", "ruff"]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/ophyd-registry"
