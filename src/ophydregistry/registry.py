@@ -107,6 +107,7 @@ class Registry:
     """
 
     use_typhos: bool = False
+    _auto_register: bool
 
     # components: Sequence
     _objects_by_name: Mapping
@@ -119,11 +120,28 @@ class Registry:
         # Set up empty lists and things for registering components
         self.clear()
         self.use_typhos = use_typhos
-        # Add a callback to get notified of new objects
-        if auto_register:
+        self.auto_register = auto_register
+
+    @property
+    def auto_register(self):
+        return self._auto_register
+
+    @auto_register.setter
+    def auto_register(self, val):
+        """Turn on or off the automatic registration of new devices."""
+        self._auto_register = val
+        if val:
+            # Add a callback to get notified of new objects
             ophydobj.OphydObject.add_instantiation_callback(
                 self.register, fail_if_late=False
             )
+        else:
+            try:
+                ophydobj.OphydObject._OphydObject__instantiation_callbacks.remove(
+                    self.register
+                )
+            except ValueError:
+                pass
 
     def __getitem__(self, key):
         """Retrieve the object from the dicionary.
@@ -161,10 +179,17 @@ class Registry:
             else:
                 raise
         # Remove from the list by name
-        del self._objects_by_name[obj.name]
+        try:
+            del self._objects_by_name[obj.name]
+        except KeyError:
+            pass
         # Remove from the list by label
         for objects in self._objects_by_label.values():
             objects.discard(obj)
+        # Remove children from the lists as well
+        sub_signals = getattr(obj, "_signals", {})
+        for cpt_name, cpt in sub_signals.items():
+            self.pop(cpt)
         return obj
 
     def clear(self, clear_typhos: bool = True):
@@ -447,11 +472,14 @@ class Registry:
             # (Needed for some sub-components that are just readback
             # values of the parent)
             # Check that we're not adding a duplicate component name
+            if name == "I0_center":
+                print(self._objects_by_name.keys(), self)
             if name in self._objects_by_name.keys():
                 old_obj = self._objects_by_name[name]
                 is_readback = component in [
                     getattr(old_obj, "readback", None),
                     getattr(old_obj, "user_readback", None),
+                    getattr(old_obj, "val", None),
                 ]
                 if is_readback:
                     msg = f"Ignoring readback with duplicate name: '{name}'"
