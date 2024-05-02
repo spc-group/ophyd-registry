@@ -1,9 +1,10 @@
 import logging
+import time
 import warnings
 from collections import OrderedDict
 from itertools import chain
-from typing import List, Mapping, Optional
-from weakref import WeakValueDictionary, WeakSet
+from typing import List, Mapping, Optional, Set
+from weakref import WeakSet, WeakValueDictionary
 
 from ophyd import ophydobj
 
@@ -114,13 +115,17 @@ class Registry:
     use_typhos: bool
     keep_references: bool
     _auto_register: bool
+    _valid_classes: Set[type] = {ophydobj.OphydObject}
 
     # components: Sequence
     _objects_by_name: Mapping
     _objects_by_label: Mapping
 
     def __init__(
-        self, auto_register: bool = True, use_typhos: bool = False, keep_references: bool = True
+        self,
+        auto_register: bool = True,
+        use_typhos: bool = False,
+        keep_references: bool = True,
     ):
         # Check that Typhos is installed if needed
         if use_typhos and not typhos_available:
@@ -219,6 +224,35 @@ class Registry:
         if clear_typhos and self.use_typhos:
             typhos.plugins.core.signal_registry.clear()
 
+    def pop_disconnected(self, timeout: float = 0.0) -> List:
+        """Remove any registered objects that are disconnected.
+
+        Parameters
+        ==========
+        timeout
+          How long to wait for devices to connect, in seconds.
+
+        Returns
+        =======
+        disconnected
+          The root level devices that were removed.
+
+        """
+        remaining = [dev for dev in self.root_devices]
+        t0 = time.monotonic()
+        timeout_reached = False
+        while not timeout_reached:
+            # Remove any connected devices for the running list
+            remaining = [dev for dev in remaining if not dev.connected]
+            if len(remaining) == 0:
+                # All devices are connected, so just end early.
+                break
+            time.sleep(min((0.05, timeout / 10.0)))
+            timeout_reached = (time.monotonic() - t0) > timeout
+        # Remove unconnected devices from the registry
+        popped = [self.pop(dev) for dev in remaining]
+        return popped
+
     @property
     def component_names(self):
         return set(self._objects_by_name.keys())
@@ -304,9 +338,22 @@ class Registry:
             result = None
         return result
 
+    def _is_resolved(self, obj):
+        """Is the object already resolved into an ophyd device, etc.
+
+        This method checks the type of the object. To extend this to
+        other types of objects, override this objects
+        ``_valid_classes`` attribute with a new set.
+
+        """
+        for cls in self._valid_classes:
+            if isinstance(obj, cls):
+                return True
+        return False
+
     def _findall_by_label(self, label, allow_none):
         # Check for already created ophyd objects (return as is)
-        if isinstance(label, ophydobj.OphydObject):
+        if self._is_resolved(label):
             yield label
             return
         # Recursively get lists of components
@@ -333,7 +380,7 @@ class Registry:
 
     def _findall_by_name(self, name):
         # Check for already created ophyd objects (return as is)
-        if isinstance(name, ophydobj.OphydObject):
+        if self._is_resolved(name):
             yield name
             return
         # Check for an edge case with EpicsMotor objects (user_readback name is same as parent)
