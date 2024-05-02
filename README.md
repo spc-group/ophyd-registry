@@ -223,6 +223,39 @@ motor.set(5).wait()
 
 ```
 
+Keeping References
+------------------
+
+It may be useful to not actually keep a strong reference to the
+``OphydObject``s. This means that if all other references to the
+object are removed, the device may be dropped from the registry.
+
+By default, the registry keeps direct references to the objects that
+get registered, but if initalized with ``keep_references=False`` the
+Registry will not keep these references. Instead, **it is up to you to
+keep references to the registered objects**.
+
+```python
+
+# Create two registers with both referencing behaviors
+ref_registry = Registry(keep_references=True)
+noref_registry = Registry(keep_references=False)
+motor = EpicsMotor(...)
+
+# Check if we can get the motor (should be no problem)
+ref_registry[motor.name]  # <- succeeds
+noref_registry[motor.name]  # <- succeeds
+
+# Delete the object and try again
+del motor
+gc.collect()  # <- make sure it's *really* gone
+
+# Check again if we can get the motor (now it gets fun)
+ref_registry[motor.name]  # <- succeeds
+noref_registry[motor.name]  # <- raises ComponentNotFound
+
+```
+
 Integrating with Typhos
 -----------------------
 
