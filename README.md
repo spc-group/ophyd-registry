@@ -203,6 +203,15 @@ method:
 registry.clear()
 ```
 
+To **remove disconnected devices** from the registry, use the ``pop_disconnected()`` method with an optional timeout:
+
+```python
+
+# Wait 5 seconds to give devices a chance to connect
+disconnected_devices = registry.pop_disconnected(timeout=5)
+
+```
+
 To **remove individual objects**, use either the *del* keyword, or the
 ``pop()`` method. These approaches work with either the
 ``OphydObject`` instance itself, or the instance's name:

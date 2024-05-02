@@ -1,5 +1,8 @@
 import gc
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor
+from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
@@ -10,6 +13,7 @@ from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 @pytest.fixture()
 def registry():
     reg = Registry(auto_register=False, use_typhos=False)
+    reg._valid_classes = {mock.MagicMock, *reg._valid_classes}
     try:
         yield reg
     finally:
@@ -278,7 +282,6 @@ def test_auto_register():
 
     """
     registry = Registry(auto_register=True)
-    print(f"auto_register: {registry}")
     sim.SynGauss(
         "I0",
         sim.motor,
@@ -314,7 +317,6 @@ def test_clear(registry):
 
 def test_component_properties(registry):
     """Check that we can get lists of component and devices."""
-    print(f"component_properties: {registry}")
     I0 = sim.SynGauss(
         "I0",
         sim.motor,
@@ -447,3 +449,53 @@ def test_weak_references():
     # Check that it's not in the registry anymore
     with pytest.raises(ComponentNotFound):
         registry.find("weak_motor")
+
+
+@pytest.fixture()
+def motors(mocker):
+    mocker.patch("ophyd.epics_motor.EpicsMotor.connected", new=True)
+    good_motor = EpicsMotor("255idVME:m1", name="good_motor")
+    good_motor.connected = True
+    bad_motor = EpicsMotor("255idVME:m2", name="bad_motor")
+    bad_motor.connected = False
+    return (good_motor, bad_motor)
+
+
+def test_pop_disconnected(registry, motors):
+    """Check that we can remove disconnected devices."""
+    good_motor, bad_motor = motors
+    registry.register(good_motor)
+    registry.register(bad_motor)
+    # Check that the disconnected device gets removed
+    popped = registry.pop_disconnected()
+    with pytest.raises(ComponentNotFound):
+        registry["bad_motor"]
+    # Check that the popped device was returned
+    assert len(popped) == 1
+    assert popped[0] is bad_motor
+    # Check that the connected device is still in the registry
+    assert registry["good_motor"] is good_motor
+
+
+def test_pop_disconnected_with_timeout(registry, motors):
+    """Check that we can apply a timeout when waiting for disconnected
+    devices.
+
+    """
+    good_motor, bad_motor = motors
+    good_motor.connected = False  # It starts disconnected
+    # Register the devices
+    registry.register(good_motor)
+    registry.register(bad_motor)
+
+    # Remove the devices with a timeout
+    def make_connected(dev, wait):
+        time.sleep(wait)
+        dev.connected = True
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        # Make the connection happen after 50 ms
+        executor.submit(make_connected, good_motor, 0.15)
+        registry.pop_disconnected(timeout=0.3)
+    # Check that the connected device is still in the registry
+    assert registry["good_motor"] is good_motor
