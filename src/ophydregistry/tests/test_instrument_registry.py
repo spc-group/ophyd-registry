@@ -282,7 +282,6 @@ def test_auto_register():
 
     """
     registry = Registry(auto_register=True)
-    print(f"auto_register: {registry}")
     sim.SynGauss(
         "I0",
         sim.motor,
@@ -318,7 +317,6 @@ def test_clear(registry):
 
 def test_component_properties(registry):
     """Check that we can get lists of component and devices."""
-    print(f"component_properties: {registry}")
     I0 = sim.SynGauss(
         "I0",
         sim.motor,
@@ -456,9 +454,9 @@ def test_weak_references():
 @pytest.fixture()
 def motors(mocker):
     mocker.patch("ophyd.epics_motor.EpicsMotor.connected", new=True)
-    good_motor = EpicsMotor(name="good_motor")
+    good_motor = EpicsMotor("255idVME:m1", name="good_motor")
     good_motor.connected = True
-    bad_motor = EpicsMotor(name="bad_motor")
+    bad_motor = EpicsMotor("255idVME:m2", name="bad_motor")
     bad_motor.connected = False
     return (good_motor, bad_motor)
 

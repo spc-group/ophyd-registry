@@ -531,8 +531,6 @@ class Registry:
             # (Needed for some sub-components that are just readback
             # values of the parent)
             # Check that we're not adding a duplicate component name
-            if name == "I0_center":
-                print(self._objects_by_name.keys(), self)
             if name in self._objects_by_name.keys():
                 old_obj = self._objects_by_name[name]
                 is_readback = component in [
