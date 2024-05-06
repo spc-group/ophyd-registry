@@ -13,7 +13,7 @@ from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 @pytest.fixture()
 def registry():
     reg = Registry(auto_register=False, use_typhos=False)
-    reg._valid_classes = {mock.MagicMock, *reg._valid_classes}
+    reg._valid_classes = (mock.MagicMock, *reg._valid_classes)
     try:
         yield reg
     finally:
