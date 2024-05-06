@@ -3,10 +3,15 @@ import time
 import warnings
 from collections import OrderedDict
 from itertools import chain
-from typing import List, Mapping, Optional, Set
+from typing import Hashable, List, Mapping, Optional, Tuple
 from weakref import WeakSet, WeakValueDictionary
 
 from ophyd import ophydobj
+
+try:
+    from pcdsdevices.signal import _AggregateSignalState
+except ImportError:
+    _AggregateSignalState = ophydobj.OphydObject
 
 # Sentinal value for default parameters
 UNSET = object()
@@ -115,7 +120,7 @@ class Registry:
     use_typhos: bool
     keep_references: bool
     _auto_register: bool
-    _valid_classes: Set[type] = {ophydobj.OphydObject}
+    _valid_classes: Tuple[type] = (ophydobj.OphydObject, _AggregateSignalState)
 
     # components: Sequence
     _objects_by_name: Mapping
@@ -195,11 +200,12 @@ class Registry:
         # Remove from the list by name
         try:
             del self._objects_by_name[obj.name]
-        except KeyError:
+        except (KeyError, AttributeError):
             pass
         # Remove from the list by label
-        for objects in self._objects_by_label.values():
-            objects.discard(obj)
+        if isinstance(obj, Hashable):
+            for objects in self._objects_by_label.values():
+                objects.discard(obj)
         # Remove children from the lists as well
         sub_signals = getattr(obj, "_signals", {})
         for cpt_name, cpt in sub_signals.items():
@@ -346,9 +352,8 @@ class Registry:
         ``_valid_classes`` attribute with a new set.
 
         """
-        for cls in self._valid_classes:
-            if isinstance(obj, cls):
-                return True
+        if isinstance(obj, self._valid_classes):
+            return True
         return False
 
     def _findall_by_label(self, label, allow_none):
