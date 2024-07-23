@@ -3,7 +3,7 @@ import time
 import warnings
 from collections import OrderedDict
 from itertools import chain
-from typing import Hashable, List, Mapping, Optional, Tuple
+from typing import Hashable, List, Mapping, Optional, Tuple, Sequence
 from weakref import WeakSet, WeakValueDictionary
 
 from ophyd import ophydobj
@@ -12,6 +12,12 @@ try:
     from pcdsdevices.signal import _AggregateSignalState
 except ImportError:
     _AggregateSignalState = ophydobj.OphydObject
+
+from .exceptions import (
+    ComponentNotFound,
+    InvalidComponentLabel,
+    MultipleComponentsFound,
+)    
 
 # Sentinal value for default parameters
 UNSET = object()
@@ -24,11 +30,6 @@ except ImportError:
 else:
     typhos_available = True
 
-from .exceptions import (
-    ComponentNotFound,
-    InvalidComponentLabel,
-    MultipleComponentsFound,
-)
 
 log = logging.getLogger(__name__)
 
@@ -506,7 +507,9 @@ class Registry:
         self.register(obj)
         return obj
 
-    def register(self, component: ophydobj.OphydObject) -> ophydobj.OphydObject:
+    def register(
+        self, component: ophydobj.OphydObject, labels: Optional[Sequence] = None
+    ) -> ophydobj.OphydObject:
         """Register a device, component, etc so that it can be retrieved later.
 
         If *component* is a class, then any instances created will
@@ -517,6 +520,9 @@ class Registry:
         =======
         component
           The same component as was provided as an input.
+        labels
+          Device labels to use for registration. If `None` (default),
+          the devices *_ophyd_labels_* parameter will be used.
 
         """
         # Determine how to register the device
@@ -556,7 +562,11 @@ class Registry:
             # Create a set for this device name if it doesn't exist
             self._objects_by_name[component.name] = component
             # Create a set for this device's labels if it doesn't exist
-            for label in getattr(component, "_ophyd_labels_", []):
+            if labels is None:
+                ophyd_labels = getattr(component, "_ophyd_labels_", [])
+            else:
+                ophyd_labels = labels
+            for label in ophyd_labels:
                 if label not in self._objects_by_label.keys():
                     if self.keep_references:
                         self._objects_by_label[label] = set()
