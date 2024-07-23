@@ -46,6 +46,26 @@ def test_register_component(registry):
     assert cpt in results
 
 
+def test_register_component_with_labels(registry):
+    # Create an unregistered component
+    cpt = sim.SynGauss(
+        "I0",
+        sim.motor,
+        "motor",
+        center=-0.5,
+        Imax=1,
+        sigma=1,
+    )
+    # Now register the component
+    cpt = registry.register(cpt, labels={"ion_chamber"})
+    # Confirm that it's findable by label
+    results = registry.findall(label="ion_chamber")
+    assert cpt in results
+    # Config that it's findable by name
+    results = registry.findall(name="I0")
+    assert cpt in results
+
+
 def test_find_missing_components(registry):
     """Test that registry raises an exception if no matches are found."""
     cpt = sim.SynGauss(
