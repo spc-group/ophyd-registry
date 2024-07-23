@@ -13,6 +13,12 @@ try:
 except ImportError:
     _AggregateSignalState = ophydobj.OphydObject
 
+from .exceptions import (
+    ComponentNotFound,
+    InvalidComponentLabel,
+    MultipleComponentsFound,
+)    
+
 # Sentinal value for default parameters
 UNSET = object()
 
@@ -24,11 +30,6 @@ except ImportError:
 else:
     typhos_available = True
 
-from .exceptions import (
-    ComponentNotFound,
-    InvalidComponentLabel,
-    MultipleComponentsFound,
-)
 
 log = logging.getLogger(__name__)
 
