@@ -17,7 +17,7 @@ from .exceptions import (
     ComponentNotFound,
     InvalidComponentLabel,
     MultipleComponentsFound,
-)    
+)
 
 # Sentinal value for default parameters
 UNSET = object()
@@ -250,7 +250,7 @@ class Registry:
         timeout_reached = False
         while not timeout_reached:
             # Remove any connected devices for the running list
-            remaining = [dev for dev in remaining if not dev.connected]
+            remaining = [dev for dev in remaining if not getattr(dev, "connected", True)]
             if len(remaining) == 0:
                 # All devices are connected, so just end early.
                 break
