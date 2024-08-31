@@ -13,6 +13,11 @@ try:
 except ImportError:
     _AggregateSignalState = ophydobj.OphydObject
 
+try:
+    from ophyd_async.core import Device as AsyncDevice
+except ImportError:
+    AsyncDevice = ophydobj.OphydObject
+
 from .exceptions import (
     ComponentNotFound,
     InvalidComponentLabel,
@@ -121,7 +126,7 @@ class Registry:
     use_typhos: bool
     keep_references: bool
     _auto_register: bool
-    _valid_classes: Tuple[type] = (ophydobj.OphydObject, _AggregateSignalState)
+    _valid_classes: Tuple[type] = (ophydobj.OphydObject, _AggregateSignalState, AsyncDevice)
 
     # components: Sequence
     _objects_by_name: Mapping
