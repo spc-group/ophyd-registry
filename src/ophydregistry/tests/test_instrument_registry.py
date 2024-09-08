@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
+from ophyd_async.epics.motor import Motor
 
 from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
@@ -141,6 +142,13 @@ def test_find_component(registry):
     # Multiple matches should raise an exception
     with pytest.raises(MultipleComponentsFound):
         result = registry.find(label="ion_chamber")
+
+
+def test_find_async_children(registry):
+    """Check that the child components of an async device get registered."""
+    motor = Motor(prefix="255idcVME:m1", name="m1")
+    registry.register(motor)
+    assert registry.find(motor.user_setpoint.name) is motor.user_setpoint
 
 
 def test_find_name_by_dot_notation(registry):

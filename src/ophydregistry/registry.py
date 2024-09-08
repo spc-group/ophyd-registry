@@ -3,7 +3,7 @@ import time
 import warnings
 from collections import OrderedDict
 from itertools import chain
-from typing import Hashable, List, Mapping, Optional, Tuple, Sequence
+from typing import Hashable, List, Mapping, Optional, Sequence, Tuple
 from weakref import WeakSet, WeakValueDictionary
 
 from ophyd import ophydobj
@@ -126,7 +126,11 @@ class Registry:
     use_typhos: bool
     keep_references: bool
     _auto_register: bool
-    _valid_classes: Tuple[type] = (ophydobj.OphydObject, _AggregateSignalState, AsyncDevice)
+    _valid_classes: Tuple[type] = (
+        ophydobj.OphydObject,
+        _AggregateSignalState,
+        AsyncDevice,
+    )
 
     # components: Sequence
     _objects_by_name: Mapping
@@ -255,7 +259,9 @@ class Registry:
         timeout_reached = False
         while not timeout_reached:
             # Remove any connected devices for the running list
-            remaining = [dev for dev in remaining if not getattr(dev, "connected", True)]
+            remaining = [
+                dev for dev in remaining if not getattr(dev, "connected", True)
+            ]
             if len(remaining) == 0:
                 # All devices are connected, so just end early.
                 break
@@ -584,7 +590,14 @@ class Registry:
 
                 typhos.plugins.register_signal(component)
             # Recusively register sub-components
-            sub_signals = getattr(component, "_signals", {})
-            for cpt_name, cpt in sub_signals.items():
+            if hasattr(component, "_signals"):
+                # Vanilla ophyd device
+                sub_signals = component._signals.items()
+            elif hasattr(component, "children"):
+                # Ophyd-async device
+                sub_signals = component.children()
+            else:
+                sub_signals = []
+            for cpt_name, cpt in sub_signals:
                 self.register(cpt)
         return component
