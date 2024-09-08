@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
-from ophyd_async.epics.motor import Motor
+from ophyd_async.core import Device as AsyncDevice, soft_signal_rw
 
 from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
@@ -146,9 +146,14 @@ def test_find_component(registry):
 
 def test_find_async_children(registry):
     """Check that the child components of an async device get registered."""
-    motor = Motor(prefix="255idcVME:m1", name="m1")
-    registry.register(motor)
-    assert registry.find(motor.user_setpoint.name) is motor.user_setpoint
+    class MyDevice(AsyncDevice):
+        def __init__(self, name):
+            self.signal = soft_signal_rw()
+            super().__init__(name=name)
+        
+    device = MyDevice(name="m1")
+    registry.register(device)
+    assert registry.find(device.signal.name) is device.signal
 
 
 def test_find_name_by_dot_notation(registry):
