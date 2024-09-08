@@ -1,6 +1,6 @@
 [project]
 name = "ophyd-registry"
-version = "1.3.2"
+version = "1.3.3"
 authors = [
   { name="Mark Wolfman", email="wolfman@anl.gov" },
 ]
@@ -19,7 +19,7 @@ dependencies = ["ophyd"]
 
 [project.optional-dependencies]
 
-dev = ["black", "isort", "pytest", "build", "twine", "flake8", "ruff", "pytest-mock", "caproto"]
+dev = ["ophyd_async", "black", "isort", "pytest", "build", "twine", "flake8", "ruff", "pytest-mock", "caproto"]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/ophyd-registry"
