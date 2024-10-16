@@ -390,11 +390,13 @@ def test_getitem(registry):
 
 def test_duplicate_device(caplog, registry):
     """Check that a device doesn't get added twice."""
-    motor = sim.motor
+    # Two devices with the same name
+    motor1 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
+    motor2 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
     # Set up logging so that we can know what
     caplog.clear()
     with caplog.at_level(logging.DEBUG):
-        registry.register(motor)
+        registry.register(motor1)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" not in caplog.text
     assert "Ignoring readback with duplicate name" in caplog.text
@@ -402,9 +404,14 @@ def test_duplicate_device(caplog, registry):
     caplog.clear()
     with caplog.at_level(logging.WARNING):
         with pytest.warns(UserWarning):
-            registry.register(motor)
+            registry.register(motor2)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" in caplog.text
+    print(caplog.text)
+    # Check that the warning is only issued for the top-level device, not all its children
+    assert "motor_user_setpoint" not in caplog.text
+    # Check that the correct second device is the one that wound up in the registry
+    assert registry['motor'] is motor2
 
 
 def test_delete_by_name(registry):
@@ -472,7 +479,7 @@ def test_weak_references():
 
     """
     motor = sim.SynAxis(name="weak_motor", labels={"motors"})
-    registry = Registry(keep_references=False)
+    registry = Registry(keep_references=False, auto_register=False)
     registry.register(motor)
     # Can we still find the object if the test has a reference?
     assert registry.find("weak_motor") is motor
