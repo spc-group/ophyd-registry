@@ -519,7 +519,10 @@ class Registry:
         return obj
 
     def register(
-            self, component: ophydobj.OphydObject, labels: Optional[Sequence] = None, warn_duplicates=True
+        self,
+        component: ophydobj.OphydObject,
+        labels: Optional[Sequence] = None,
+        warn_duplicates=True,
     ) -> ophydobj.OphydObject:
         """Register a device, component, etc so that it can be retrieved later.
 

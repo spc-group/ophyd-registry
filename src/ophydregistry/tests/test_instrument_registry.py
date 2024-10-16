@@ -6,7 +6,8 @@ from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
-from ophyd_async.core import Device as AsyncDevice, soft_signal_rw
+from ophyd_async.core import Device as AsyncDevice
+from ophyd_async.core import soft_signal_rw
 
 from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
@@ -146,11 +147,12 @@ def test_find_component(registry):
 
 def test_find_async_children(registry):
     """Check that the child components of an async device get registered."""
+
     class MyDevice(AsyncDevice):
         def __init__(self, name):
             self.signal = soft_signal_rw()
             super().__init__(name=name)
-        
+
     device = MyDevice(name="m1")
     registry.register(device)
     assert registry.find(device.signal.name) is device.signal
@@ -411,7 +413,7 @@ def test_duplicate_device(caplog, registry):
     # Check that the warning is only issued for the top-level device, not all its children
     assert "motor_user_setpoint" not in caplog.text
     # Check that the correct second device is the one that wound up in the registry
-    assert registry['motor'] is motor2
+    assert registry["motor"] is motor2
 
 
 def test_delete_by_name(registry):
