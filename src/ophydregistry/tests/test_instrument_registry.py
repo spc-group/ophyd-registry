@@ -6,7 +6,8 @@ from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
-from ophyd_async.core import Device as AsyncDevice, soft_signal_rw
+from ophyd_async.core import Device as AsyncDevice
+from ophyd_async.core import soft_signal_rw
 
 from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 
@@ -146,11 +147,12 @@ def test_find_component(registry):
 
 def test_find_async_children(registry):
     """Check that the child components of an async device get registered."""
+
     class MyDevice(AsyncDevice):
         def __init__(self, name):
             self.signal = soft_signal_rw()
             super().__init__(name=name)
-        
+
     device = MyDevice(name="m1")
     registry.register(device)
     assert registry.find(device.signal.name) is device.signal
@@ -390,11 +392,13 @@ def test_getitem(registry):
 
 def test_duplicate_device(caplog, registry):
     """Check that a device doesn't get added twice."""
-    motor = sim.motor
+    # Two devices with the same name
+    motor1 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
+    motor2 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
     # Set up logging so that we can know what
     caplog.clear()
     with caplog.at_level(logging.DEBUG):
-        registry.register(motor)
+        registry.register(motor1)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" not in caplog.text
     assert "Ignoring readback with duplicate name" in caplog.text
@@ -402,9 +406,14 @@ def test_duplicate_device(caplog, registry):
     caplog.clear()
     with caplog.at_level(logging.WARNING):
         with pytest.warns(UserWarning):
-            registry.register(motor)
+            registry.register(motor2)
     # Check for the edge case where motor and motor.user_readback have the same name
     assert "Ignoring component with duplicate name" in caplog.text
+    print(caplog.text)
+    # Check that the warning is only issued for the top-level device, not all its children
+    assert "motor_user_setpoint" not in caplog.text
+    # Check that the correct second device is the one that wound up in the registry
+    assert registry["motor"] is motor2
 
 
 def test_delete_by_name(registry):
@@ -472,7 +481,7 @@ def test_weak_references():
 
     """
     motor = sim.SynAxis(name="weak_motor", labels={"motors"})
-    registry = Registry(keep_references=False)
+    registry = Registry(keep_references=False, auto_register=False)
     registry.register(motor)
     # Can we still find the object if the test has a reference?
     assert registry.find("weak_motor") is motor

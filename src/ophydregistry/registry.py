@@ -519,7 +519,10 @@ class Registry:
         return obj
 
     def register(
-        self, component: ophydobj.OphydObject, labels: Optional[Sequence] = None
+        self,
+        component: ophydobj.OphydObject,
+        labels: Optional[Sequence] = None,
+        warn_duplicates=True,
     ) -> ophydobj.OphydObject:
         """Register a device, component, etc so that it can be retrieved later.
 
@@ -534,6 +537,9 @@ class Registry:
         labels
           Device labels to use for registration. If `None` (default),
           the devices *_ophyd_labels_* parameter will be used.
+        warn_duplicates
+          If true, a warning will be issued if this device is
+          overwriting a previous device with the same name.
 
         """
         # Determine how to register the device
@@ -552,7 +558,8 @@ class Registry:
             # Ignore any instances with the same name as a previous component
             # (Needed for some sub-components that are just readback
             # values of the parent)
-            # Check that we're not adding a duplicate component name
+            # Check if we're adding a duplicate component name
+            is_duplicate = False
             if name in self._objects_by_name.keys():
                 old_obj = self._objects_by_name[name]
                 is_readback = component in [
@@ -563,11 +570,15 @@ class Registry:
                 if is_readback:
                     msg = f"Ignoring readback with duplicate name: '{name}'"
                     log.debug(msg)
+                    return component
                 else:
                     msg = f"Ignoring component with duplicate name: '{name}'"
-                    log.warning(msg)
-                    warnings.warn(msg)
-                return component
+                    is_duplicate = True
+                    if warn_duplicates:
+                        log.warning(msg)
+                        warnings.warn(msg)
+                    else:
+                        log.debug(msg)
             # Register this component
             log.debug(f"Registering {name}")
             # Create a set for this device name if it doesn't exist
@@ -599,5 +610,5 @@ class Registry:
             else:
                 sub_signals = []
             for cpt_name, cpt in sub_signals:
-                self.register(cpt)
+                self.register(cpt, warn_duplicates=not is_duplicate and warn_duplicates)
         return component
