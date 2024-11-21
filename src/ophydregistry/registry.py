@@ -550,7 +550,11 @@ class Registry:
             try:
                 name = component.name
             except AttributeError:
-                log.info(f"Skipping unnamed component {component}")
+                msg = f"Skipping unnamed component {component}"
+                if isinstance(component, _AggregateSignalState):
+                    log.debug(msg)
+                else:
+                    log.info(msg)
                 return component
             # Register this object with Typhos
             if self.use_typhos:
