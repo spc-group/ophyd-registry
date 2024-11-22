@@ -591,7 +591,9 @@ class Registry:
             log.debug(f"Registering {name}")
             # Check if this device was previously registered with a
             # different name
-            old_keys = [key for key, val in self._objects_by_name.items() if val is component]
+            old_keys = [
+                key for key, val in self._objects_by_name.items() if val is component
+            ]
             for old_key in old_keys:
                 del self._objects_by_name[old_key]
             # Register by name
