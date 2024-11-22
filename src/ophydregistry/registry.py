@@ -575,6 +575,10 @@ class Registry:
                     msg = f"Ignoring readback with duplicate name: '{name}'"
                     log.debug(msg)
                     return component
+                elif old_obj is component:
+                    msg = f"Ignoring previously registered component: '{name}'"
+                    log.debug(msg)
+                    return component
                 else:
                     msg = f"Ignoring component with duplicate name: '{name}'"
                     is_duplicate = True
@@ -585,8 +589,14 @@ class Registry:
                         log.debug(msg)
             # Register this component
             log.debug(f"Registering {name}")
-            # Create a set for this device name if it doesn't exist
-            self._objects_by_name[component.name] = component
+            # Check if this device was previously registered with a
+            # different name
+            old_keys = [key for key, val in self._objects_by_name.items() if val is component]
+            for old_key in old_keys:
+                del self._objects_by_name[old_key]
+            # Register by name
+            if component.name != "":
+                self._objects_by_name[component.name] = component
             # Create a set for this device's labels if it doesn't exist
             if labels is None:
                 ophyd_labels = getattr(component, "_ophyd_labels_", [])
