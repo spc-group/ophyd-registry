@@ -120,11 +120,15 @@ class Registry:
       If false, items will be dropped from this registry if the only
       reference comes from this registry. Relies on the garbage
       collector, so to force cleanup use ``gc.collect()``.
+    warn_duplicates
+        If true, a warning will be issued if this device is
+        overwriting a previous device with the same name.
 
     """
 
     use_typhos: bool
     keep_references: bool
+    warn_duplicates: bool
     _auto_register: bool
     _valid_classes: Tuple[type] = (
         ophydobj.OphydObject,
@@ -141,6 +145,7 @@ class Registry:
         auto_register: bool = True,
         use_typhos: bool = False,
         keep_references: bool = True,
+        warn_duplicates: bool = True,
     ):
         # Check that Typhos is installed if needed
         if use_typhos and not typhos_available:
@@ -150,6 +155,7 @@ class Registry:
         self.use_typhos = use_typhos
         self.clear()
         self.auto_register = auto_register
+        self.warn_duplicates = warn_duplicates
 
     @property
     def auto_register(self):
@@ -522,7 +528,7 @@ class Registry:
         self,
         component: ophydobj.OphydObject,
         labels: Optional[Sequence] = None,
-        warn_duplicates=True,
+        warn_duplicates=None,
     ) -> ophydobj.OphydObject:
         """Register a device, component, etc so that it can be retrieved later.
 
@@ -540,8 +546,11 @@ class Registry:
         warn_duplicates
           If true, a warning will be issued if this device is
           overwriting a previous device with the same name.
+          If None, defaults to the value of the same-named class attribute.
 
         """
+        if warn_duplicates is None:
+            warn_duplicates = self.warn_duplicates
         # Determine how to register the device
         if isinstance(component, type):
             # A class was given, so instances should be auto-registered
