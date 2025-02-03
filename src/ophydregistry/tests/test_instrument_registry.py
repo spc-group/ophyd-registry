@@ -149,7 +149,7 @@ def test_find_async_children(registry):
 
     class MyDevice(AsyncDevice):
         def __init__(self, name):
-            self.signal = soft_signal_rw()
+            self.signal = soft_signal_rw(float)
             super().__init__(name=name)
 
     device = MyDevice(name="m1")
