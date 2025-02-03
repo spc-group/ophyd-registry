@@ -1,5 +1,4 @@
 import gc
-import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
@@ -300,16 +299,6 @@ def test_find_by_list_of_names(registry):
     assert cptC not in result
 
 
-def test_user_readback(registry):
-    """Edge case where EpicsMotor.user_readback is named the same as the motor itself."""
-    device = sim.instantiate_fake_device(
-        EpicsMotor, prefix="255idVME:m1", name="epics_motor"
-    )
-    registry.register(device)
-    # See if requesting the device.user_readback returns the proper signal
-    registry.find("epics_motor_user_readback")
-
-
 def test_auto_register():
     """Ensure the registry gets devices that aren't explicitly registered.
 
@@ -391,29 +380,17 @@ def test_getitem(registry):
 
 
 def test_duplicate_device(caplog, registry):
-    """Check that a device doesn't get added twice."""
+    """Check what happens when a device gets added twice."""
     # Two devices with the same name
     motor1 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
     motor2 = sim.instantiate_fake_device(EpicsMotor, prefix="", name="motor")
     # Set up logging so that we can know what
-    caplog.clear()
-    with caplog.at_level(logging.DEBUG):
-        registry.register(motor1)
-    # Check for the edge case where motor and motor.user_readback have the same name
-    assert "Ignoring component with duplicate name" not in caplog.text
-    assert "Ignoring readback with duplicate name" in caplog.text
-    # Check that truly duplicated entries get a warning
-    caplog.clear()
-    with caplog.at_level(logging.WARNING):
-        with pytest.warns(UserWarning):
-            registry.register(motor2)
-    # Check for the edge case where motor and motor.user_readback have the same name
-    assert "Ignoring component with duplicate name" in caplog.text
-    print(caplog.text)
-    # Check that the warning is only issued for the top-level device, not all its children
-    assert "motor_user_setpoint" not in caplog.text
-    # Check that the correct second device is the one that wound up in the registry
-    assert registry["motor"] is motor2
+    registry.register(motor1)
+    registry.register(motor2)
+    # Check that we retrieve the correct things from the registry
+    registered_motors = registry.findall(name="motor")
+    expected_motors = {motor1, motor1.user_readback, motor2, motor2.user_readback}
+    assert set(registered_motors) == expected_motors
 
 
 def test_delete_by_name(registry):
