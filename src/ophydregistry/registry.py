@@ -409,7 +409,6 @@ class Registry:
         except AttributeError:
             attrs = []
         # Find the matching components
-        print(self._objects_by_name)
         try:
             devices = self._objects_by_name[name]
         except KeyError:
@@ -554,13 +553,6 @@ class Registry:
             register_typhos_signal(component)
         # Register this component
         log.debug(f"Registering {name}")
-        # Check if this device was previously registered with a
-        # different name
-        old_keys = [
-            key for key, val in self._objects_by_name.items() if val is component
-        ]
-        for old_key in old_keys:
-            del self._objects_by_name[old_key]
         # Register by name
         if self.keep_references:
             new_set = set
@@ -571,6 +563,28 @@ class Registry:
             if name not in self._objects_by_name.keys():
                 self._objects_by_name[name] = new_set()
             self._objects_by_name[name].add(component)
+        # Check if this device was previously registered with a
+        # different name/label
+        old_names = [
+            name
+            for name, devices in self._objects_by_name.items()
+            if component in devices
+        ]
+        old_names = [name for name in old_names if name != component.name]
+        for old_key in old_names:
+            print(old_key, component.name)
+            self._objects_by_name[old_key].remove(component)
+        old_labels = [
+            label
+            for label, devices in self._objects_by_label.items()
+            if component in devices
+        ]
+        old_labels = [
+            label for label in old_labels if label not in component._ophyd_labels_
+        ]
+        for old_key in old_labels:
+            self._objects_by_label[old_key].remove(component)
+
         # Create a set for this device's labels if it doesn't exist
         if labels is None:
             ophyd_labels = getattr(component, "_ophyd_labels_", [])
