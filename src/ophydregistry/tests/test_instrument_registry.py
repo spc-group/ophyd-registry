@@ -2,7 +2,6 @@ import gc
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim

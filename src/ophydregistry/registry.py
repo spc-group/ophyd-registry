@@ -3,20 +3,25 @@ import time
 import warnings
 from collections import OrderedDict
 from collections.abc import Iterable
-from itertools import chain
-from typing import Hashable, List, MutableMapping, Mapping, Optional, Sequence, Tuple, TypeVar
+from typing import (
+    Hashable,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+)
 from weakref import WeakSet, WeakValueDictionary
 
 from ophyd import ophydobj
-from ophydregistry._typing import Device, DeviceQuery
 
+from ophydregistry._typing import Device, DeviceQuery
 
 from .exceptions import (
     ComponentNotFound,
     InvalidComponentLabel,
     MultipleComponentsFound,
 )
-
 
 T = TypeVar("T")
 
