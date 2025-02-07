@@ -280,7 +280,11 @@ class Registry:
     @property
     def root_devices(self) -> set[Device]:
         """Only return root devices, those without parents."""
-        return {device for device in self.all_devices if device.parent is None}
+        return {
+            device
+            for device in self.all_devices
+            if getattr(device, "parent", None) is None
+        }
 
     @property
     def device_names(self) -> set[str]:
