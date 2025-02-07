@@ -390,6 +390,17 @@ def test_component_properties(registry):
     }
 
 
+def test_all_devices(registry):
+    registry.register(sim.motor1)
+    registry.register(sim.motor2)
+    registry.register(sim.motor3)
+    # Check that only root devices are returned
+    all_devices = registry.all_devices
+    assert len(all_devices) > 3
+    assert sim.motor1.readback in all_devices
+    assert sim.motor1.setpoint in all_devices
+
+
 def test_root_devices(registry):
     registry.register(sim.motor1)
     registry.register(sim.motor2)
