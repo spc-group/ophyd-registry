@@ -30,4 +30,4 @@ jobs:
           ruff check --output-format=github --target-version=py37 --exit-zero src/
       - name: Test with pytest
         run: |
-          pytest src/
+          pytest --mypy src/
