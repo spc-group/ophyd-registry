@@ -4,18 +4,18 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from typing import (
     Hashable,
-    List,
     MutableMapping,
     Optional,
     Sequence,
     TypeVar,
     Union,
+    overload,
 )
 from weakref import WeakSet
 
 from ophyd import ophydobj
 
-from ophydregistry._typing import Device, DeviceQuery
+from ophydregistry._typing import Device, DeviceQuery, DevicesQuery
 
 from .exceptions import (
     ComponentNotFound,
@@ -163,7 +163,7 @@ class Registry:
             except ValueError:
                 pass
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: DeviceQuery) -> Optional[Device]:
         """Retrieve the object from the dicionary.
 
         Equivalent to ``registry.find(key)``.
@@ -171,20 +171,24 @@ class Registry:
         """
         return self.find(key)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: DeviceQuery):
         """Remove an object from the dicionary.
 
-        *key* can either be the device OphydObject or the name of an
-        OphydObject.
+        *key* can either be the device or the name of a
+        device.
 
         """
         self.pop(key)
 
-    def pop(self, key, default=UNSET) -> ophydobj.OphydObject:
-        """Remove specified OphydObject and return it.
+    @overload
+    def pop(self, key: DeviceQuery) -> Device: ...
+    @overload
+    def pop(self, key: DeviceQuery, default: T) -> Union[Device, T]: ...
+    def pop(self, key, default=UNSET):
+        """Remove specified device and return it.
 
-        *key* can either be the device OphydObject or the name of an
-        OphydObject.
+        *key* can either be the device or the name of the
+        device.
 
         A default value can be provided that will be returned if the
         object is not present.
@@ -200,7 +204,7 @@ class Registry:
                 raise
         # Remove from the list by name
         try:
-            del self._objects_by_name[obj.name]
+            del self._objects_by_name[obj.name]  # type: ignore
         except (KeyError, AttributeError):
             pass
         # Remove from the list by label
@@ -213,7 +217,7 @@ class Registry:
             self.pop(cpt)
         return obj
 
-    def clear(self, clear_typhos: bool = True):
+    def clear(self, clear_typhos: bool = True) -> None:
         """Remove all previously registered components.
 
         Parameters
@@ -228,7 +232,7 @@ class Registry:
         if clear_typhos and self.use_typhos:
             typhos.plugins.core.signal_registry.clear()
 
-    def pop_disconnected(self, timeout: float = 0.0) -> List:
+    def pop_disconnected(self, timeout: float = 0.0) -> list[Device]:
         """Remove any registered objects that are disconnected.
 
         Parameters
@@ -260,11 +264,11 @@ class Registry:
         return popped
 
     @property
-    def component_names(self):
+    def component_names(self) -> set[str]:
         return set(self._objects_by_name.keys())
 
     @property
-    def root_devices(self):
+    def root_devices(self) -> set[Device]:
         """Only return root devices, those without parents."""
         all_devices = [
             dev for devices in self._objects_by_name.values() for dev in devices
@@ -272,7 +276,7 @@ class Registry:
         return {device for device in all_devices if device.parent is None}
 
     @property
-    def device_names(self):
+    def device_names(self) -> set[str]:
         """Only return root devices, those without parents."""
         return {device.name for device in self.root_devices}
 
@@ -283,7 +287,7 @@ class Registry:
         label: Optional[DeviceQuery] = None,
         name: Optional[DeviceQuery] = None,
         allow_none: bool = False,
-    ) -> Device | None:
+    ) -> Optional[Device]:
         """Find registered device components matching parameters.
 
         The *any_of* keyword is a proxy for all the other
@@ -327,28 +331,31 @@ class Registry:
           ``self.findall()`` method.
 
         """
-        devices = self.findall(
-            any_of=any_of, label=label, name=name, allow_none=allow_none
-        )
+        try:
+            devices = self.findall(
+                any_of=any_of, label=label, name=name, allow_none=False
+            )
+        except ComponentNotFound:
+            if allow_none:
+                return None
+            else:
+                raise
         # Remove any direct ancestors
         devices = [
             dev for dev in devices if getattr(dev, "parent", None) not in devices
         ]
         # Make sure we have only 1 result
         if len(devices) == 1:
-            device = list(devices)[0]
-        elif len(devices) > 1:
+            return list(devices)[0]
+        else:
             raise MultipleComponentsFound(
                 f"Found {len(devices)} components matching query "
                 f"[any_of={any_of}, label={label}, name={name}]. "
                 "Consider using ``findall()``. "
                 f"{devices}"
             )
-        else:
-            device = None
-        return device
 
-    def _is_resolved(self, obj):
+    def _is_resolved(self, obj: DevicesQuery):
         """Is the object already resolved into an ophyd device, etc.
 
         This method checks the type of the object. To extend this to
@@ -417,12 +424,12 @@ class Registry:
 
     def findall(
         self,
-        any_of: Optional[DeviceQuery] = None,
+        any_of: Optional[DevicesQuery] = None,
         *,
-        label: Optional[DeviceQuery] = None,
-        name: Optional[DeviceQuery] = None,
-        allow_none: Optional[bool] = False,
-    ) -> List[Device]:
+        label: Optional[DevicesQuery] = None,
+        name: Optional[DevicesQuery] = None,
+        allow_none: bool = False,
+    ) -> list[Device]:
         """Find registered device components matching parameters.
 
         Combining search terms works in an *or* fashion. For example,
@@ -498,9 +505,9 @@ class Registry:
 
     def register(
         self,
-        component: ophydobj.OphydObject,
-        labels: Optional[Sequence] = None,
-    ) -> ophydobj.OphydObject:
+        component: Device,
+        labels: Optional[Sequence[str]] = None,
+    ) -> Device:
         """Register a device, component, etc so that it can be retrieved later.
 
         If *component* is a class, then any instances created will
@@ -550,9 +557,8 @@ class Registry:
             for label, devices in self._objects_by_label.items()
             if component in devices
         ]
-        old_labels = [
-            label for label in old_labels if label not in component._ophyd_labels_
-        ]
+        device_labels = getattr(component, "_ophyd_labels_", [])
+        old_labels = [label for label in old_labels if label not in device_labels]
         for old_key in old_labels:
             self._objects_by_label[old_key].remove(component)
 
