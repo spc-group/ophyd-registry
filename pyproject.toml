@@ -19,7 +19,7 @@ dependencies = ["ophyd"]
 
 [project.optional-dependencies]
 
-dev = ["ophyd_async", "black", "isort", "pytest", "build", "twine", "flake8", "ruff", "pytest-mock", "caproto"]
+dev = ["ophyd_async", "black", "isort", "pytest", "pytest-mypy", "build", "twine", "flake8", "ruff", "pytest-mock", "caproto"]
 
 [project.urls]
 "Homepage" = "https://github.com/spc-group/ophyd-registry"
@@ -31,3 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.isort]
 profile = "black"
+
+[[tool.mypy.overrides]]
+module = ["ophyd.*", "pcdsdevices.*", "typhos.*"]
+ignore_missing_imports = true

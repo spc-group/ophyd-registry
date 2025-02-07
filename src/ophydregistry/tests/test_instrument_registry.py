@@ -15,7 +15,6 @@ from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 @pytest.fixture()
 def registry():
     reg = Registry(auto_register=False, use_typhos=False)
-    reg._valid_classes = (mock.MagicMock, *reg._valid_classes)
     try:
         yield reg
     finally:
@@ -150,7 +149,7 @@ def test_find_async_children(registry):
 
     class MyDevice(AsyncDevice):
         def __init__(self, name):
-            self.signal = soft_signal_rw()
+            self.signal = soft_signal_rw(float)
             super().__init__(name=name)
 
     device = MyDevice(name="m1")
