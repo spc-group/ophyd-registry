@@ -1,27 +1,29 @@
 import logging
 import time
 from collections import OrderedDict
-from itertools import chain
-from typing import Hashable, List, Mapping, Optional, Sequence, Tuple
+from collections.abc import Iterable
+from typing import (
+    Hashable,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 from weakref import WeakSet
 
 from ophyd import ophydobj
 
-try:
-    from pcdsdevices.signal import _AggregateSignalState
-except ImportError:
-    _AggregateSignalState = ophydobj.OphydObject
-
-try:
-    from ophyd_async.core import Device as AsyncDevice
-except ImportError:
-    AsyncDevice = ophydobj.OphydObject
+from ophydregistry._typing import Device, DeviceQuery
 
 from .exceptions import (
     ComponentNotFound,
     InvalidComponentLabel,
     MultipleComponentsFound,
 )
+
+T = TypeVar("T")
 
 # Sentinal value for default parameters
 UNSET = object()
@@ -42,16 +44,11 @@ __all__ = ["Registry"]
 
 
 def is_iterable(obj):
-    return (not isinstance(obj, str)) and hasattr(obj, "__iter__")
+    return (not isinstance(obj, str)) and isinstance(obj, Iterable)
 
 
-def remove_duplicates(items, key=None):
-    unique_items = list()
-    for item in items:
-        val = item if key is None else key(item)
-        if val not in unique_items:
-            yield item
-            unique_items.append(val)
+def remove_duplicates(items: Sequence[T]) -> list[T]:
+    return list(set(items))
 
 
 def register_typhos_signal(signal):
@@ -125,15 +122,10 @@ class Registry:
     use_typhos: bool
     keep_references: bool
     _auto_register: bool
-    _valid_classes: Tuple[type] = (
-        ophydobj.OphydObject,
-        _AggregateSignalState,
-        AsyncDevice,
-    )
 
     # components: Sequence
-    _objects_by_name: Mapping
-    _objects_by_label: Mapping
+    _objects_by_name: MutableMapping
+    _objects_by_label: MutableMapping
 
     def __init__(
         self,
@@ -286,12 +278,12 @@ class Registry:
 
     def find(
         self,
-        any_of: Optional[str] = None,
+        any_of: Optional[DeviceQuery] = None,
         *,
-        label: Optional[str] = None,
-        name: Optional[str] = None,
-        allow_none: Optional[str] = False,
-    ) -> ophydobj.OphydObject:
+        label: Optional[DeviceQuery] = None,
+        name: Optional[DeviceQuery] = None,
+        allow_none: bool = False,
+    ) -> Device | None:
         """Find registered device components matching parameters.
 
         The *any_of* keyword is a proxy for all the other
@@ -339,7 +331,9 @@ class Registry:
             any_of=any_of, label=label, name=name, allow_none=allow_none
         )
         # Remove any direct ancestors
-        devices = set(dev for dev in devices if dev.parent not in devices)
+        devices = [
+            dev for dev in devices if getattr(dev, "parent", None) not in devices
+        ]
         # Make sure we have only 1 result
         if len(devices) == 1:
             device = list(devices)[0]
@@ -358,13 +352,11 @@ class Registry:
         """Is the object already resolved into an ophyd device, etc.
 
         This method checks the type of the object. To extend this to
-        other types of objects, override this objects
-        ``_valid_classes`` attribute with a new set.
+        other types of objects, add the object class to
+        `ophydregistry._typing.Device`.
 
         """
-        if isinstance(obj, self._valid_classes):
-            return True
-        return False
+        return isinstance(obj, Device)
 
     def _findall_by_label(self, label, allow_none):
         # Check for already created ophyd objects (return as is)
@@ -425,12 +417,12 @@ class Registry:
 
     def findall(
         self,
-        any_of: Optional[str] = None,
+        any_of: Optional[DeviceQuery] = None,
         *,
-        label: Optional[str] = None,
-        name: Optional[str] = None,
+        label: Optional[DeviceQuery] = None,
+        name: Optional[DeviceQuery] = None,
         allow_none: Optional[bool] = False,
-    ) -> List[ophydobj.OphydObject]:
+    ) -> List[Device]:
         """Find registered device components matching parameters.
 
         Combining search terms works in an *or* fashion. For example,
@@ -479,7 +471,7 @@ class Registry:
         _name = name if name is not None else any_of
         # Apply several filters against label, name, etc.
         if is_iterable(any_of):
-            for a in any_of:
+            for a in any_of:  # type: ignore  # Device is not iterable, but we checked
                 results.append(self.findall(any_of=a, allow_none=allow_none))
         else:
             # Filter by label
@@ -489,21 +481,12 @@ class Registry:
             if _name is not None:
                 results.append(self._findall_by_name(_name))
         # Peek at the first item to check for an empty result
-        results = chain(*results)
-        try:
-            first = next(results)
-        except StopIteration:
-            # No results were found
-            if allow_none:
-                results = []
-            else:
-                raise ComponentNotFound(
-                    f'Could not find components matching: label="{_label}", name="{_name}"'
-                )
-        else:
-            # Stick the first entry back in the queue and yield it
-            results = chain([first], results)
-        return list(remove_duplicates(results))
+        devices = [device for devices in results for device in devices]
+        if len(devices) == 0 and not allow_none:
+            raise ComponentNotFound(
+                f'Could not find components matching: label="{_label}", name="{_name}"'
+            )
+        return list(remove_duplicates(devices))
 
     def __new__wrapper(self, cls, *args, **kwargs):
         # Create and instantiate the new object
@@ -533,36 +516,25 @@ class Registry:
           the devices *_ophyd_labels_* parameter will be used.
 
         """
-        # Determine how to register the device
         if isinstance(component, type):
             # A class was given, so instances should be auto-registered
-            component.__new__ = self.__new__wrapper
-            return component
-        # An instance was given, so just save it in the register
-        try:
-            name = component.name
-        except AttributeError:
-            msg = f"Skipping unnamed component {component}"
-            if isinstance(component, _AggregateSignalState):
-                log.debug(msg)
-            else:
-                log.info(msg)
+            component.__new__ = self.__new__wrapper  # type: ignore
             return component
         # Register this object with Typhos
         if self.use_typhos:
             register_typhos_signal(component)
-        # Register this component
-        log.debug(f"Registering {name}")
         # Register by name
+        new_set: type[Union[set, WeakSet]]
         if self.keep_references:
             new_set = set
         else:
             new_set = WeakSet
-        if component.name != "":
-            name = component.name
-            if name not in self._objects_by_name.keys():
-                self._objects_by_name[name] = new_set()
-            self._objects_by_name[name].add(component)
+        new_name = getattr(component, "name", "")
+        if new_name != "":
+            log.debug(f"Registering {new_name}")
+            if new_name not in self._objects_by_name.keys():
+                self._objects_by_name[new_name] = new_set()
+            self._objects_by_name[new_name].add(component)
         # Check if this device was previously registered with a
         # different name/label
         old_names = [
@@ -570,9 +542,8 @@ class Registry:
             for name, devices in self._objects_by_name.items()
             if component in devices
         ]
-        old_names = [name for name in old_names if name != component.name]
+        old_names = [name for name in old_names if name != new_name]
         for old_key in old_names:
-            print(old_key, component.name)
             self._objects_by_name[old_key].remove(component)
         old_labels = [
             label

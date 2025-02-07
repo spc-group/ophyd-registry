@@ -1,7 +1,6 @@
 import gc
 import time
 from concurrent.futures import ThreadPoolExecutor
-from unittest import mock
 
 import pytest
 from ophyd import Device, EpicsMotor, sim
@@ -14,7 +13,6 @@ from ophydregistry import ComponentNotFound, MultipleComponentsFound, Registry
 @pytest.fixture()
 def registry():
     reg = Registry(auto_register=False, use_typhos=False)
-    reg._valid_classes = (mock.MagicMock, *reg._valid_classes)
     try:
         yield reg
     finally:
