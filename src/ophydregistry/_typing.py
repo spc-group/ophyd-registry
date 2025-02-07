@@ -13,4 +13,6 @@ class Device(Protocol):
         ...
 
 
-DeviceQuery = Union[str, Device, Sequence[Union[str, Device]]]
+DeviceQuery = Union[str, Device]
+
+DevicesQuery = Union[str, Device, Sequence[DeviceQuery]]
