@@ -268,12 +268,19 @@ class Registry:
         return set(self._objects_by_name.keys())
 
     @property
+    def all_devices(self) -> set[Device]:
+        devices_by_name = {
+            dev for devices in self._objects_by_name.values() for dev in devices
+        }
+        devices_by_label = {
+            dev for devices in self._objects_by_label.values() for dev in devices
+        }
+        return devices_by_name | devices_by_label
+
+    @property
     def root_devices(self) -> set[Device]:
         """Only return root devices, those without parents."""
-        all_devices = [
-            dev for devices in self._objects_by_name.values() for dev in devices
-        ]
-        return {device for device in all_devices if device.parent is None}
+        return {device for device in self.all_devices if device.parent is None}
 
     @property
     def device_names(self) -> set[str]:
